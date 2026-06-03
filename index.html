@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Mizan">
+<meta name="theme-color" content="#0b1220">
+<title>Mizan — Budget</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1220; --bg2:#0f1830; --card:#141f3a; --card2:#1a2747;
+  --line:#243353; --ink:#eaf0ff; --ink2:#9fb0d4; --ink3:#6b7da6;
+  --acc:#3ddc97; --acc2:#5b8cff; --warn:#ffb454; --bad:#ff6b81;
+  --gold:#e8c069; --shadow:0 18px 40px rgba(0,0,0,.45);
+  --r:18px; --r2:14px;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
+  font-family:'Sora',system-ui,sans-serif;overscroll-behavior:none}
+body.ar{font-family:'IBM Plex Sans Arabic',sans-serif}
+#app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;
+  background:radial-gradient(120% 60% at 50% 0%, #11203f 0%, var(--bg) 55%);
+  position:relative;padding-bottom:96px}
+.hidden{display:none!important}
+.bal-hidden{filter:blur(9px);transition:filter .2s}
+
+/* Header */
+.top{padding:calc(env(safe-area-inset-top) + 18px) 20px 12px;display:flex;
+  align-items:center;justify-content:space-between;gap:10px}
+.brand{display:flex;align-items:center;gap:10px}
+.logo{width:38px;height:38px;border-radius:12px;background:
+  linear-gradient(135deg,var(--acc),var(--acc2));display:grid;place-items:center;
+  font-weight:800;color:#06281d;font-size:18px;box-shadow:var(--shadow)}
+.brand h1{font-size:19px;margin:0;font-weight:700;letter-spacing:-.3px}
+.brand small{display:block;color:var(--ink3);font-size:11px;font-weight:500;margin-top:-2px}
+.tbtns{display:flex;gap:8px}
+.iconbtn{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink2);display:grid;place-items:center;
+  font-size:15px;cursor:pointer;transition:.15s}
+.iconbtn:active{transform:scale(.92)}
+.iconbtn.on{color:var(--acc);border-color:var(--acc)}
+
+/* period selector */
+.period{margin:6px 20px 0;display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;
+  scrollbar-width:none}
+.period::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;padding:8px 14px;border-radius:999px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink2);font-size:13px;font-weight:600;cursor:pointer;
+  font-family:inherit;white-space:nowrap}
+.chip.on{background:var(--ink);color:#0b1220;border-color:var(--ink)}
+
+/* views */
+.view{padding:14px 20px 0;animation:fade .3s ease}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+/* dashboard hero */
+.hero{background:linear-gradient(140deg,var(--card2),var(--card));border:1px solid var(--line);
+  border-radius:var(--r);padding:20px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;
+  background:radial-gradient(circle,rgba(61,220,151,.18),transparent 70%)}
+body.ar .hero::after{right:auto;left:-40px}
+.hero .lbl{color:var(--ink2);font-size:12px;font-weight:600;letter-spacing:.3px}
+.hero .big{font-size:34px;font-weight:800;letter-spacing:-1px;margin:4px 0 2px}
+.hero .sub{color:var(--ink3);font-size:13px}
+.bar{height:12px;border-radius:999px;background:#0c1530;margin-top:16px;overflow:hidden;
+  border:1px solid var(--line)}
+.bar>div{height:100%;border-radius:999px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.herometa{display:flex;justify-content:space-between;margin-top:12px;gap:10px}
+.herometa div{flex:1}
+.herometa .k{color:var(--ink3);font-size:11px;font-weight:600}
+.herometa .v{font-size:16px;font-weight:700;margin-top:2px}
+
+.sectit{display:flex;align-items:center;justify-content:space-between;margin:22px 2px 12px}
+.sectit h2{font-size:15px;margin:0;font-weight:700;letter-spacing:-.2px}
+.sectit a{color:var(--acc2);font-size:13px;font-weight:600;cursor:pointer}
+
+/* category cards */
+.catcard{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);
+  padding:14px;margin-bottom:10px;cursor:pointer;transition:.15s}
+.catcard:active{transform:scale(.98)}
+.catrow{display:flex;align-items:center;gap:12px}
+.emoji{width:42px;height:42px;border-radius:12px;background:var(--card2);display:grid;
+  place-items:center;font-size:20px;flex:0 0 auto}
+.catname{font-weight:600;font-size:15px}
+.catsub{color:var(--ink3);font-size:12px;margin-top:1px}
+.catamt{text-align:right;margin-inline-start:auto}
+body.ar .catamt{text-align:left}
+.catamt .a{font-weight:700;font-size:15px}
+.catamt .b{color:var(--ink3);font-size:11px}
+.mini{height:7px;border-radius:999px;background:#0c1530;margin-top:11px;overflow:hidden}
+.mini>div{height:100%;border-radius:999px;transition:width .5s}
+.pct{font-size:11px;font-weight:700;margin-top:7px;display:flex;justify-content:space-between}
+
+.statusdot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-inline-end:5px}
+
+/* transactions */
+.tx{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.tx:last-child{border-bottom:none}
+.txname{font-weight:600;font-size:14px}
+.txmeta{color:var(--ink3);font-size:12px;margin-top:1px}
+.txamt{margin-inline-start:auto;font-weight:700;font-size:15px;text-align:right}
+body.ar .txamt{text-align:left}
+.uncat{background:var(--warn);color:#3a2600;font-size:10px;font-weight:700;
+  padding:2px 7px;border-radius:6px;margin-inline-start:6px}
+
+/* nav */
+.nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;
+  background:rgba(15,24,48,.92);backdrop-filter:blur(16px);border-top:1px solid var(--line);
+  display:flex;justify-content:space-around;padding:8px 6px calc(env(safe-area-inset-bottom) + 8px);z-index:50}
+.navb{flex:1;background:none;border:none;color:var(--ink3);font-family:inherit;
+  display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;
+  cursor:pointer;padding:6px 0}
+.navb svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;
+  stroke-linecap:round;stroke-linejoin:round}
+.navb.on{color:var(--acc)}
+.fab{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 78px);inset-inline-end:calc(50% - 240px + 20px);
+  width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));
+  border:none;color:#06281d;font-size:28px;font-weight:300;box-shadow:0 10px 30px rgba(61,220,151,.4);
+  cursor:pointer;z-index:51;display:grid;place-items:center;transition:.15s}
+@media(max-width:480px){.fab{inset-inline-end:20px}}
+.fab:active{transform:scale(.9)}
+
+/* sheet / modal */
+.scrim{position:fixed;inset:0;background:rgba(4,8,18,.6);backdrop-filter:blur(3px);
+  z-index:100;display:flex;align-items:flex-end;justify-content:center;animation:fade .2s}
+.sheet{width:100%;max-width:480px;background:var(--bg2);border-radius:24px 24px 0 0;
+  border:1px solid var(--line);border-bottom:none;max-height:92vh;overflow-y:auto;
+  padding:8px 20px calc(env(safe-area-inset-bottom) + 24px);animation:up .28s cubic-bezier(.2,.8,.2,1)}
+@keyframes up{from{transform:translateY(100%)}to{transform:none}}
+.grab{width:40px;height:4px;border-radius:999px;background:var(--line);margin:6px auto 14px}
+.sheet h3{font-size:18px;margin:4px 0 16px;font-weight:700}
+label{display:block;font-size:12px;color:var(--ink2);font-weight:600;margin:14px 0 6px}
+input,select,textarea{width:100%;background:var(--card);border:1px solid var(--line);
+  border-radius:12px;padding:13px 14px;color:var(--ink);font-family:inherit;font-size:15px;outline:none}
+input:focus,select:focus,textarea:focus{border-color:var(--acc2)}
+textarea{resize:vertical;min-height:70px}
+.row2{display:flex;gap:10px}.row2>div{flex:1}
+.btn{width:100%;padding:15px;border-radius:14px;border:none;font-family:inherit;font-weight:700;
+  font-size:15px;cursor:pointer;margin-top:18px;transition:.15s}
+.btn:active{transform:scale(.98)}
+.btn-pri{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#06281d}
+.btn-ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+.btn-bad{background:rgba(255,107,129,.14);color:var(--bad);border:1px solid rgba(255,107,129,.3)}
+.emojipick{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
+.emojipick span{width:42px;height:42px;border-radius:11px;background:var(--card);border:1px solid var(--line);
+  display:grid;place-items:center;font-size:20px;cursor:pointer}
+.emojipick span.on{border-color:var(--acc);background:var(--card2)}
+
+/* segmented */
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;margin-top:6px}
+.seg button{flex:1;padding:10px;border:none;background:none;color:var(--ink2);font-family:inherit;
+  font-weight:600;font-size:13px;border-radius:9px;cursor:pointer}
+.seg button.on{background:var(--acc2);color:#06281d}
+
+/* empty */
+.empty{text-align:center;padding:50px 20px;color:var(--ink3)}
+.empty .e{font-size:46px;margin-bottom:10px}
+.empty p{font-size:14px;line-height:1.5}
+
+/* insights cards */
+.insight{background:var(--card);border:1px solid var(--line);border-radius:var(--r2);padding:15px;margin-bottom:11px;
+  display:flex;gap:13px;align-items:flex-start}
+.insight .ic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;font-size:19px;flex:0 0 auto}
+.insight .t{font-weight:600;font-size:14px;margin-bottom:3px}
+.insight .d{color:var(--ink2);font-size:12.5px;line-height:1.45}
+
+.alertbar{background:rgba(255,180,84,.12);border:1px solid rgba(255,180,84,.35);color:var(--warn);
+  border-radius:12px;padding:11px 14px;font-size:13px;font-weight:600;margin-bottom:12px;
+  display:flex;gap:8px;align-items:center}
+
+.toast{position:fixed;bottom:120px;left:50%;transform:translateX(-50%);background:var(--ink);
+  color:#0b1220;padding:12px 20px;border-radius:12px;font-weight:600;font-size:13px;z-index:200;
+  box-shadow:var(--shadow);animation:fade .2s;max-width:90%}
+.pillrow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.pill{padding:7px 12px;border-radius:10px;background:var(--card);border:1px solid var(--line);
+  font-size:13px;font-weight:600;cursor:pointer}
+.pill.on{background:var(--acc2);color:#06281d;border-color:var(--acc2)}
+.crumb{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--ink2);font-weight:600;margin-bottom:14px;flex-wrap:wrap}
+.crumb b{color:var(--ink)}
+.crumb span{cursor:pointer}
+.searchbar{display:flex;gap:8px;margin-bottom:14px}
+.searchbar input{flex:1}
+.note{color:var(--ink3);font-size:12px;line-height:1.5;margin-top:8px}
+.kbd{background:var(--card);border:1px solid var(--line);border-radius:6px;padding:1px 6px;font-size:12px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* ============ i18n ============ */
+const T = {
+  en:{appsub:"Personal Budget",dash:"Home",budget:"Budget",add:"Add",reports:"Reports",
+    settings:"Settings",totalBudget:"Total Budget",spent:"Spent",remaining:"Remaining",
+    overspend:"Overspend",compliance:"On track",categories:"Categories",recent:"Recent",
+    viewall:"View all",uncategorized:"Uncategorized",ofbudget:"of budget",
+    addExpense:"Add Expense",importSms:"Import from SMS",amount:"Amount",vendor:"Vendor",
+    date:"Date",category:"Category",subcategory:"Subcategory",notes:"Notes",card:"Card / Account",
+    save:"Save",cancel:"Cancel",delete:"Delete",pasteSms:"Paste your bank SMS here",
+    parse:"Detect transaction",manual:"Manual",sms:"SMS",addCat:"Add Category",
+    catName:"Category name",icon:"Icon",budgetAmt:"Budget amount",parent:"Parent category",
+    none:"None (top level)",editCat:"Edit Category",noCats:"No categories yet",
+    noCatsD:"Create your first budget category to start tracking.",noTx:"No transactions",
+    noTxD:"Add an expense or import one from a bank SMS.",thisMonth:"This Month",ytd:"YTD",
+    custom:"Custom",lastMonth:"Last Month",used:"used",left:"left",over:"over",search:"Search transactions…",
+    insights:"Insights & Trends",topSpend:"Highest spending",overCats:"Over budget",
+    mom:"vs last month",coach:"Budget Coach",export:"Export data",lang:"العربية",
+    privacy:"Privacy mode",privacyD:"Blur all amounts",hijri:"Show Hijri date",
+    income:"Income / Salary",addIncome:"Add income",savings:"Savings goals",
+    smsHint:"On iPhone, copy a bank SMS and paste it here. I'll auto-detect the amount, vendor, and card.",
+    detected:"Detected",confirm:"Confirm & add",learn:"Remember this vendor for next time",
+    suggested:"Suggested",status_ok:"On track",status_warn:"Near limit",status_over:"Over budget",
+    nothingMonth:"Nothing spent this period yet.",resetInfo:"Budgets reset monthly · history is kept",
+    needCat:"Add a category first",pickCat:"Pick a category",txDetail:"Transaction",
+    edit:"Edit",assignCat:"Assign category",incomeV:"Income",expenseV:"Expense",net:"Net",
+    cashflow:"Cash Flow",exportData:"Exported to file",addedTx:"Expense added",savedCat:"Category saved",
+    deletedTx:"Transaction deleted",alertNear:"is near its budget limit",alertOver:"is over budget",
+    chooseIcon:"Choose icon",seeMore:"see categories"},
+  ar:{appsub:"الميزانية الشخصية",dash:"الرئيسية",budget:"الميزانية",add:"إضافة",reports:"التقارير",
+    settings:"الإعدادات",totalBudget:"إجمالي الميزانية",spent:"المصروف",remaining:"المتبقي",
+    overspend:"تجاوز",compliance:"ضمن الحد",categories:"الفئات",recent:"الأحدث",
+    viewall:"عرض الكل",uncategorized:"غير مصنّف",ofbudget:"من الميزانية",
+    addExpense:"إضافة مصروف",importSms:"استيراد من رسالة",amount:"المبلغ",vendor:"المتجر",
+    date:"التاريخ",category:"الفئة",subcategory:"الفئة الفرعية",notes:"ملاحظات",card:"البطاقة / الحساب",
+    save:"حفظ",cancel:"إلغاء",delete:"حذف",pasteSms:"الصق رسالة البنك هنا",
+    parse:"اكتشاف العملية",manual:"يدوي",sms:"رسالة",addCat:"إضافة فئة",
+    catName:"اسم الفئة",icon:"أيقونة",budgetAmt:"مبلغ الميزانية",parent:"الفئة الرئيسية",
+    none:"بدون (مستوى أعلى)",editCat:"تعديل الفئة",noCats:"لا توجد فئات بعد",
+    noCatsD:"أنشئ أول فئة ميزانية لتبدأ التتبع.",noTx:"لا توجد عمليات",
+    noTxD:"أضف مصروفاً أو استورده من رسالة البنك.",thisMonth:"هذا الشهر",ytd:"السنة",
+    custom:"مخصّص",lastMonth:"الشهر الماضي",used:"مستخدم",left:"متبقٍ",over:"تجاوز",search:"ابحث في العمليات…",
+    insights:"الرؤى والاتجاهات",topSpend:"الأعلى صرفاً",overCats:"تجاوزت الميزانية",
+    mom:"مقارنة بالشهر الماضي",coach:"مدرّب الميزانية",export:"تصدير البيانات",lang:"English",
+    privacy:"وضع الخصوصية",privacyD:"إخفاء المبالغ",hijri:"عرض التاريخ الهجري",
+    income:"الدخل / الراتب",addIncome:"إضافة دخل",savings:"أهداف الادخار",
+    smsHint:"على الآيفون، انسخ رسالة البنك والصقها هنا. سأكتشف المبلغ والمتجر والبطاقة تلقائياً.",
+    detected:"تم الاكتشاف",confirm:"تأكيد وإضافة",learn:"تذكّر هذا المتجر للمرة القادمة",
+    suggested:"مقترح",status_ok:"ضمن الحد",status_warn:"قريب من الحد",status_over:"تجاوز الميزانية",
+    nothingMonth:"لا مصروفات في هذه الفترة بعد.",resetInfo:"تتجدد الميزانية شهرياً · يُحفظ السجل",
+    needCat:"أضف فئة أولاً",pickCat:"اختر فئة",txDetail:"العملية",
+    edit:"تعديل",assignCat:"تصنيف",incomeV:"الدخل",expenseV:"المصروف",net:"الصافي",
+    cashflow:"التدفق النقدي",exportData:"تم التصدير إلى ملف",addedTx:"تمت إضافة المصروف",savedCat:"تم حفظ الفئة",
+    deletedTx:"تم حذف العملية",alertNear:"اقترب من حد الميزانية",alertOver:"تجاوز الميزانية",
+    chooseIcon:"اختر أيقونة",seeMore:"عرض الفئات"}
+};
+let LANG = localStorage.getItem('mizan_lang') || 'en';
+const t = k => (T[LANG][k] ?? k);
+
+/* ============ State ============ */
+const DEFAULT = {
+  cats:[
+    {id:'c1',name:{en:'Food',ar:'الطعام'},icon:'🍔',budget:0,parent:null},
+    {id:'c1a',name:{en:'Groceries',ar:'البقالة'},icon:'🛒',budget:1500,parent:'c1'},
+    {id:'c1b',name:{en:'Restaurants',ar:'المطاعم'},icon:'🍽️',budget:800,parent:'c1'},
+    {id:'c1c',name:{en:'Coffee',ar:'القهوة'},icon:'☕',budget:300,parent:'c1'},
+    {id:'c2',name:{en:'Bills',ar:'الفواتير'},icon:'🧾',budget:0,parent:null},
+    {id:'c2a',name:{en:'Phone / Internet',ar:'الجوال / الإنترنت'},icon:'📱',budget:400,parent:'c2'},
+    {id:'c2b',name:{en:'Electricity',ar:'الكهرباء'},icon:'⚡',budget:600,parent:'c2'},
+    {id:'c3',name:{en:'Transport',ar:'المواصلات'},icon:'🚗',budget:700,parent:null},
+    {id:'c4',name:{en:'Shopping',ar:'التسوّق'},icon:'🛍️',budget:1000,parent:null},
+  ],
+  tx:[],
+  income:[],
+  vendorMap:{}, // vendor(lower) -> catId
+  cards:['SNB Credit Card','SNB Savings','SAB Account'],
+  settings:{privacy:false,hijri:false}
+};
+let S = load();
+function load(){ try{ const r=localStorage.getItem('mizan_data'); return r?JSON.parse(r):structuredClone(DEFAULT);}catch(e){return structuredClone(DEFAULT);} }
+function save(){ localStorage.setItem('mizan_data',JSON.stringify(S)); }
+
+let view='dash', period='month', customRange=null, drillCat=null, searchQ='';
+
+/* ============ helpers ============ */
+const fmt = n => { const v=Math.round(n||0).toLocaleString(LANG==='ar'?'ar-SA':'en-US'); return v; };
+const sar = n => LANG==='ar' ? `${fmt(n)} ر.س` : `SAR ${fmt(n)}`;
+const uid = () => Math.random().toString(36).slice(2,9);
+const cname = c => c.name[LANG] || c.name.en;
+const childrenOf = id => S.cats.filter(c=>c.parent===id);
+const topCats = () => S.cats.filter(c=>!c.parent);
+function catById(id){return S.cats.find(c=>c.id===id);}
+
+function periodRange(){
+  const now=new Date();
+  if(period==='month'){const s=new Date(now.getFullYear(),now.getMonth(),1);const e=new Date(now.getFullYear(),now.getMonth()+1,0,23,59,59);return[s,e];}
+  if(period==='last'){const s=new Date(now.getFullYear(),now.getMonth()-1,1);const e=new Date(now.getFullYear(),now.getMonth(),0,23,59,59);return[s,e];}
+  if(period==='ytd'){const s=new Date(now.getFullYear(),0,1);return[s,now];}
+  if(period==='custom'&&customRange){return[new Date(customRange[0]),new Date(customRange[1]+'T23:59:59')];}
+  const s=new Date(now.getFullYear(),now.getMonth(),1);const e=new Date(now.getFullYear(),now.getMonth()+1,0,23,59,59);return[s,e];
+}
+function txInPeriod(){
+  const[s,e]=periodRange();
+  return S.tx.filter(x=>{const d=new Date(x.date);return d>=s&&d<=e;});
+}
+// effective budget of a top cat = own budget + children budgets
+function catBudget(c){
+  const kids=childrenOf(c.id);
+  if(kids.length) return kids.reduce((a,k)=>a+(k.budget||0),0)+(c.budget||0);
+  return c.budget||0;
+}
+function catSpent(catId,list){
+  // includes descendants
+  const ids=[catId,...childrenOf(catId).map(k=>k.id)];
+  return list.filter(x=>ids.includes(x.cat)).reduce((a,x)=>a+x.amount,0);
+}
+function totalBudget(){ return topCats().reduce((a,c)=>a+catBudget(c),0); }
+function totalSpent(list){ return list.filter(x=>x.cat&&x.cat!=='uncat').reduce((a,x)=>a+x.amount,0)+list.filter(x=>!x.cat||x.cat==='uncat').reduce((a,x)=>a+x.amount,0); }
+function statusOf(spent,budget){
+  if(budget<=0) return spent>0?'over':'ok';
+  const p=spent/budget;
+  if(p>1) return 'over'; if(p>=0.9) return 'warn'; return 'ok';
+}
+const statusColor={ok:'var(--acc)',warn:'var(--warn)',over:'var(--bad)'};
+
+/* ============ SMS PARSER (SNB / SAB patterns) ============ */
+function parseSMS(text){
+  const res={amount:null,vendor:null,card:null,date:new Date().toISOString().slice(0,10)};
+  // amount: looks for number before/after SAR/ر.س or "purchase"
+  const amtMatch = text.match(/(?:SAR|ر\.?س|SR)\s*([\d,]+\.?\d*)/i) ||
+                   text.match(/([\d,]+\.?\d*)\s*(?:SAR|ر\.?س|SR)/i) ||
+                   text.match(/(?:مبلغ|amount|purchase of|بمبلغ)\s*[:\s]*([\d,]+\.?\d*)/i);
+  if(amtMatch) res.amount=parseFloat(amtMatch[1].replace(/,/g,''));
+  // vendor: after "at" / "لدى" / "من" / "@"
+  const vMatch = text.match(/(?:at|لدى|من|@|merchant|في)\s+([A-Za-z\u0600-\u06FF0-9 .'&-]{2,40})/i);
+  if(vMatch) res.vendor=vMatch[1].trim().split(/\s+(on|بتاريخ|في|card|بطاقة)/i)[0].trim();
+  // card: SNB / SAB + last 4 digits or keyword
+  const cardMatch = text.match(/(SNB|SAB|الأهلي|ساب|الاول)[^\d]*(\d{4})?/i);
+  if(cardMatch){
+    let nm = /snb|الأهلي/i.test(cardMatch[1])?'SNB':'SAB';
+    res.card = cardMatch[2]? `${nm} ••${cardMatch[2]}` : (S.cards.find(c=>c.includes(nm))||nm);
+  }
+  // detect credit vs account
+  if(/credit|ائتمان|بطاقة/i.test(text)&&res.card&&!/Saving|توفير/i.test(res.card)){
+    if(!/Credit|ائتمان/i.test(res.card)) res.card+=' Credit';
+  }
+  // date dd/mm or yyyy-mm-dd
+  const dMatch = text.match(/(\d{4}-\d{2}-\d{2})|(\d{1,2}\/\d{1,2}\/\d{2,4})/);
+  if(dMatch){
+    if(dMatch[1]) res.date=dMatch[1];
+    else{const p=dMatch[2].split('/');let[a,b,c]=p;if(c.length===2)c='20'+c;res.date=`${c}-${String(b).padStart(2,'0')}-${String(a).padStart(2,'0')}`;}
+  }
+  return res;
+}
+function suggestCat(vendor){
+  if(!vendor) return null;
+  const v=vendor.toLowerCase();
+  if(S.vendorMap[v]) return S.vendorMap[v];
+  // keyword heuristics
+  const rules=[
+    [/stc|mobily|zain|internet|fiber/,'c2a'],
+    [/sec|كهرباء|electric/,'c2b'],
+    [/tamimi|panda|danube|carrefour|lulu|بنده|التميمي|العثيم|hyper/,'c1a'],
+    [/restaurant|kitchen|grill|burger|albaik|البيك|مطعم|shawarma/,'c1b'],
+    [/coffee|barn|starbucks|dose|كافيه|قهوة|بن/,'c1c'],
+    [/uber|careem|كريم|petrol|gas|محطة|aramco|fuel/,'c3'],
+    [/mall|store|amazon|noon|نون|سوق|zara|ikea/,'c4'],
+  ];
+  for(const[re,id]of rules){ if(re.test(v)&&catById(id)) return id; }
+  return null;
+}
+
+/* ============ RENDER ============ */
+const app=document.getElementById('app');
+function render(){
+  document.body.className=LANG==='ar'?'ar':'';
+  document.documentElement.lang=LANG; document.documentElement.dir=LANG==='ar'?'rtl':'ltr';
+  app.innerHTML = header() + periodBar() + viewHTML() + nav() + fab();
+  bind();
+}
+function header(){
+  const pv=S.settings.privacy;
+  return `<div class="top">
+    <div class="brand"><div class="logo">M</div>
+      <div><h1>Mizan ${LANG==='ar'?'ميزان':''}</h1><small>${t('appsub')}</small></div></div>
+    <div class="tbtns">
+      <button class="iconbtn ${pv?'on':''}" data-act="togprivacy" title="privacy">${pv?'🙈':'👁'}</button>
+      <button class="iconbtn" data-act="toglang">${LANG==='ar'?'EN':'ع'}</button>
+    </div></div>`;
+}
+function periodBar(){
+  if(view!=='dash'&&view!=='reports'&&view!=='budget') return '';
+  const opts=[['month',t('thisMonth')],['last',t('lastMonth')],['ytd',t('ytd')],['custom',t('custom')]];
+  return `<div class="period">${opts.map(([k,l])=>`<button class="chip ${period===k?'on':''}" data-period="${k}">${l}</button>`).join('')}
+    ${period==='custom'?`<input type="date" id="cr0" style="width:auto;padding:6px 8px;font-size:12px" value="${customRange?customRange[0]:''}">
+      <input type="date" id="cr1" style="width:auto;padding:6px 8px;font-size:12px" value="${customRange?customRange[1]:''}">`:''}</div>`;
+}
+function viewHTML(){
+  if(view==='dash') return dashView();
+  if(view==='budget') return drillCat?drillView():budgetView();
+  if(view==='reports') return reportsView();
+  if(view==='settings') return settingsView();
+  return '';
+}
+
+/* ---- Dashboard ---- */
+function dashView(){
+  const list=txInPeriod();
+  const tb=totalBudget(), sp=totalSpent(list), rem=tb-sp;
+  const pct=tb>0?Math.min(100,(sp/tb)*100):0;
+  const over=sp>tb&&tb>0;
+  const col=over?'var(--bad)':pct>=90?'var(--warn)':'var(--acc)';
+  const pv=S.settings.privacy?'bal-hidden':'';
+  // alerts
+  let alerts='';
+  topCats().forEach(c=>{const b=catBudget(c),s=catSpent(c.id,list);const st=statusOf(s,b);
+    if(st==='over')alerts+=`<div class="alertbar">⚠️ <span><b>${cname(c)}</b> ${t('alertOver')}</span></div>`;
+    else if(st==='warn')alerts+=`<div class="alertbar">🔔 <span><b>${cname(c)}</b> ${t('alertNear')}</span></div>`;});
+
+  const recent=[...S.tx].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  const cats=topCats();
+  return `<div class="view">
+    <div class="hero">
+      <div class="lbl">${t('totalBudget')} · ${periodLabel()}</div>
+      <div class="big ${pv}">${sar(tb)}</div>
+      <div class="sub">${t('spent')} <b class="${pv}" style="color:var(--ink)">${sar(sp)}</b></div>
+      <div class="bar"><div style="width:${pct}%;background:linear-gradient(90deg,${col},${col})"></div></div>
+      <div class="herometa">
+        <div><div class="k">${t('spent')}</div><div class="v ${pv}">${sar(sp)}</div></div>
+        <div><div class="k">${over?t('overspend'):t('remaining')}</div>
+          <div class="v ${pv}" style="color:${over?'var(--bad)':'var(--acc)'}">${sar(Math.abs(rem))}</div></div>
+        <div><div class="k">${t('compliance')}</div><div class="v">${tb>0?Math.max(0,Math.round(100-pct))+'%':'—'}</div></div>
+      </div>
+    </div>
+    ${alerts}
+    <div class="sectit"><h2>${t('categories')}</h2><a data-go="budget">${t('viewall')}</a></div>
+    ${cats.length?cats.map(c=>catCard(c,list)).join(''):emptyCats()}
+    <div class="sectit"><h2>${t('recent')}</h2>${S.tx.length>5?`<a data-go="budget">${t('viewall')}</a>`:''}</div>
+    ${recent.length?recent.map(txRow).join(''):`<div class="empty"><div class="e">🧾</div><p>${t('noTxD')}</p></div>`}
+    <div class="note" style="text-align:center;margin-top:18px">${t('resetInfo')}</div>
+  </div>`;
+}
+function catCard(c,list){
+  const b=catBudget(c),s=catSpent(c.id,list);
+  const pct=b>0?Math.min(100,(s/b)*100):(s>0?100:0);
+  const st=statusOf(s,b);const col=statusColor[st];
+  const kids=childrenOf(c.id);
+  return `<div class="catcard" data-drill="${c.id}">
+    <div class="catrow">
+      <div class="emoji">${c.icon}</div>
+      <div><div class="catname">${cname(c)}</div>
+        <div class="catsub">${kids.length?kids.length+' '+t('subcategory').toLowerCase():t('category')}</div></div>
+      <div class="catamt"><div class="a bal-h">${sar(s)}</div><div class="b">${t('ofbudget')} ${sar(b)}</div></div>
+    </div>
+    <div class="mini"><div style="width:${pct}%;background:${col}"></div></div>
+    <div class="pct"><span style="color:${col}"><span class="statusdot" style="background:${col}"></span>${t('status_'+st)}</span>
+      <span style="color:var(--ink2)">${b>0?Math.round((s/b)*100):0}% ${t('used')}</span></div>
+  </div>`;
+}
+function emptyCats(){return `<div class="empty"><div class="e">📊</div><p><b>${t('noCats')}</b><br>${t('noCatsD')}</p>
+  <button class="btn btn-pri" style="max-width:220px;margin:14px auto 0" data-act="addcat">+ ${t('addCat')}</button></div>`;}
+function txRow(x){
+  const c=catById(x.cat); const isUncat=!x.cat||x.cat==='uncat';
+  return `<div class="tx" data-tx="${x.id}">
+    <div class="emoji" style="width:40px;height:40px;font-size:18px">${isUncat?'❓':(c?c.icon:'💸')}</div>
+    <div><div class="txname">${x.vendor||t('expenseV')}${isUncat?`<span class="uncat">${t('uncategorized')}</span>`:''}</div>
+      <div class="txmeta">${x.card||''} · ${fmtDate(x.date)}</div></div>
+    <div class="txamt bal-h">−${sar(x.amount)}</div>
+  </div>`;
+}
+
+/* ---- Budget (all categories list + manage) ---- */
+function budgetView(){
+  const list=txInPeriod();
+  return `<div class="view">
+    <div class="sectit"><h2>${t('budget')}</h2><a data-act="addcat">+ ${t('addCat')}</a></div>
+    ${topCats().length?topCats().map(c=>catCard(c,list)).join(''):emptyCats()}
+    <div class="sectit"><h2>${t('recent')}</h2></div>
+    <div class="searchbar"><input id="search" placeholder="${t('search')}" value="${searchQ}"></div>
+    ${allTxList()}
+  </div>`;
+}
+function allTxList(){
+  let list=[...S.tx].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(searchQ){const q=searchQ.toLowerCase();list=list.filter(x=>{const c=catById(x.cat);
+    return (x.vendor||'').toLowerCase().includes(q)||(c&&cname(c).toLowerCase().includes(q))||
+    String(x.amount).includes(q)||x.date.includes(q);});}
+  if(!list.length) return `<div class="empty"><div class="e">🔍</div><p>${t('noTxD')}</p></div>`;
+  return list.map(txRow).join('');
+}
+
+/* ---- Drill down ---- */
+function drillView(){
+  const c=catById(drillCat); if(!c){drillCat=null;return budgetView();}
+  const list=txInPeriod();
+  const kids=childrenOf(c.id);
+  const b=catBudget(c),s=catSpent(c.id,list),rem=b-s;
+  const ids=[c.id,...kids.map(k=>k.id)];
+  const txs=list.filter(x=>ids.includes(x.cat)).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  return `<div class="view">
+    <div class="crumb"><span data-go="budget">${t('budget')}</span> › <b>${c.icon} ${cname(c)}</b>
+      <button class="iconbtn" style="margin-inline-start:auto;width:32px;height:32px;font-size:13px" data-editcat="${c.id}">✏️</button></div>
+    <div class="hero">
+      <div class="lbl">${cname(c)} · ${periodLabel()}</div>
+      <div class="big bal-h">${sar(s)}</div>
+      <div class="sub">${t('ofbudget')} ${sar(b)}</div>
+      <div class="bar"><div style="width:${b>0?Math.min(100,s/b*100):0}%;background:${statusColor[statusOf(s,b)]}"></div></div>
+      <div class="herometa">
+        <div><div class="k">${t('budget')}</div><div class="v bal-h">${sar(b)}</div></div>
+        <div><div class="k">${rem<0?t('over'):t('left')}</div><div class="v bal-h" style="color:${rem<0?'var(--bad)':'var(--acc)'}">${sar(Math.abs(rem))}</div></div>
+        <div><div class="k">${t('used')}</div><div class="v">${b>0?Math.round(s/b*100):0}%</div></div>
+      </div>
+    </div>
+    ${kids.length?`<div class="sectit"><h2>${t('subcategory')}</h2></div>${kids.map(k=>subCard(k,list)).join('')}`:''}
+    <div class="sectit"><h2>${t('recent')}</h2></div>
+    ${txs.length?txs.map(txRow).join(''):`<div class="empty"><div class="e">🧾</div><p>${t('nothingMonth')}</p></div>`}
+  </div>`;
+}
+function subCard(k,list){
+  const b=k.budget||0,s=catSpent(k.id,list);
+  const pct=b>0?Math.min(100,s/b*100):(s>0?100:0);const st=statusOf(s,b);const col=statusColor[st];
+  return `<div class="catcard" data-drillsub="${k.id}">
+    <div class="catrow"><div class="emoji">${k.icon}</div>
+      <div><div class="catname">${cname(k)}</div></div>
+      <div class="catamt"><div class="a bal-h">${sar(s)}</div><div class="b">${t('ofbudget')} ${sar(b)}</div></div></div>
+    <div class="mini"><div style="width:${pct}%;background:${col}"></div></div>
+    <div class="pct"><span style="color:${col}">${t('status_'+st)}</span><span style="color:var(--ink2)">${b>0?Math.round(s/b*100):0}%</span></div>
+  </div>`;
+}
+
+/* ---- Reports ---- */
+function reportsView(){
+  const list=txInPeriod();
+  const tb=totalBudget(),sp=totalSpent(list);
+  const inc=incomeInPeriod();
+  // per cat
+  const rows=topCats().map(c=>({c,b:catBudget(c),s:catSpent(c.id,list)})).filter(r=>r.s>0||r.b>0);
+  const top=[...rows].sort((a,b)=>b.s-a.s)[0];
+  const overs=rows.filter(r=>r.b>0&&r.s>r.b);
+  // mom: this vs last month per total
+  const mom=momChange();
+  let html=`<div class="view">
+    <div class="sectit"><h2>${t('cashflow')}</h2></div>
+    <div class="hero">
+      <div class="herometa" style="margin-top:0">
+        <div><div class="k">${t('incomeV')}</div><div class="v bal-h" style="color:var(--acc)">${sar(inc)}</div></div>
+        <div><div class="k">${t('expenseV')}</div><div class="v bal-h" style="color:var(--bad)">${sar(sp)}</div></div>
+        <div><div class="k">${t('net')}</div><div class="v bal-h" style="color:${inc-sp>=0?'var(--acc)':'var(--bad)'}">${sar(inc-sp)}</div></div>
+      </div></div>
+    <div class="sectit"><h2>${t('coach')} 🤖</h2></div>`;
+  if(top&&top.s>0) html+=insight('🔥','var(--bad)',t('topSpend'),`${cname(top.c)} — ${sar(top.s)} (${top.b>0?Math.round(top.s/top.b*100):'∞'}% ${t('ofbudget')})`);
+  overs.forEach(r=>{const pctOver=Math.round((r.s-r.b)/r.b*100);
+    html+=insight('⚠️','var(--warn)',t('overCats'),`${cname(r.c)} ${LANG==='ar'?'تجاوزت بنسبة':'is'} ${pctOver}% ${LANG==='ar'?'':'over budget'} (+${sar(r.s-r.b)})`);});
+  if(mom.diff!==0){const up=mom.diff>0;
+    html+=insight(up?'📈':'📉',up?'var(--warn)':'var(--acc)',t('mom'),
+      `${up?(LANG==='ar'?'صرفت أكثر':'You spent more'):(LANG==='ar'?'صرفت أقل':'You spent less')} ${LANG==='ar'?'بنسبة':'by'} ${Math.abs(mom.pct)}% ${t('mom')} (${sar(Math.abs(mom.diff))})`);}
+  if(!top||top.s===0) html+=`<div class="empty"><div class="e">📈</div><p>${t('nothingMonth')}</p></div>`;
+  // category breakdown bars
+  html+=`<div class="sectit"><h2>${t('categories')}</h2></div>`;
+  rows.sort((a,b)=>b.s-a.s).forEach(r=>{const pct=r.b>0?Math.min(100,r.s/r.b*100):(r.s>0?100:0);const col=statusColor[statusOf(r.s,r.b)];
+    html+=`<div style="margin-bottom:13px"><div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:5px">
+      <span>${r.c.icon} ${cname(r.c)}</span><span class="bal-h">${sar(r.s)} / ${sar(r.b)}</span></div>
+      <div class="mini"><div style="width:${pct}%;background:${col}"></div></div></div>`;});
+  html+=`<button class="btn btn-ghost" data-act="export" style="margin-top:20px">⬇︎ ${t('export')}</button></div>`;
+  return html;
+}
+function insight(ic,col,title,desc){return `<div class="insight"><div class="ic" style="background:${col}22;color:${col}">${ic}</div>
+  <div><div class="t">${title}</div><div class="d">${desc}</div></div></div>`;}
+function momChange(){
+  const now=new Date();
+  const ts=new Date(now.getFullYear(),now.getMonth(),1),te=new Date(now.getFullYear(),now.getMonth()+1,0,23,59,59);
+  const ls=new Date(now.getFullYear(),now.getMonth()-1,1),le=new Date(now.getFullYear(),now.getMonth(),0,23,59,59);
+  const sum=(s,e)=>S.tx.filter(x=>{const d=new Date(x.date);return d>=s&&d<=e;}).reduce((a,x)=>a+x.amount,0);
+  const cur=sum(ts,te),prev=sum(ls,le);const diff=cur-prev;
+  return {diff,pct:prev>0?Math.round(diff/prev*100):(cur>0?100:0)};
+}
+function incomeInPeriod(){const[s,e]=periodRange();return S.income.filter(i=>{const d=new Date(i.date);return d>=s&&d<=e;}).reduce((a,i)=>a+i.amount,0);}
+
+/* ---- Settings ---- */
+function settingsView(){
+  return `<div class="view">
+    <div class="sectit"><h2>${t('settings')}</h2></div>
+    ${toggleRow('🙈',t('privacy'),t('privacyD'),S.settings.privacy,'togprivacy')}
+    ${toggleRow('🌙',t('lang'),'EN / العربية',false,'toglang',true)}
+    <div class="sectit"><h2>${t('income')}</h2></div>
+    <button class="btn btn-ghost" data-act="addincome">+ ${t('addIncome')}</button>
+    ${S.income.length?S.income.slice(-4).reverse().map(i=>`<div class="tx"><div class="emoji" style="width:40px;height:40px">💰</div>
+      <div><div class="txname">${i.source||t('incomeV')}</div><div class="txmeta">${fmtDate(i.date)}</div></div>
+      <div class="txamt bal-h" style="color:var(--acc)">+${sar(i.amount)}</div></div>`).join(''):''}
+    <div class="sectit"><h2>SMS · iOS</h2></div>
+    <div class="insight"><div class="ic" style="background:var(--acc2)22;color:var(--acc2)">📲</div>
+      <div><div class="t">${LANG==='ar'?'استيراد رسائل البنك':'Import bank SMS'}</div>
+      <div class="d">${t('smsHint')}</div></div></div>
+    <button class="btn btn-pri" data-act="importsms">${t('importSms')}</button>
+    <div class="sectit"><h2>${t('export')}</h2></div>
+    <button class="btn btn-ghost" data-act="export">⬇︎ ${t('export')} (CSV)</button>
+    <div class="note" style="text-align:center;margin-top:24px">Mizan · ${t('resetInfo')}</div>
+  </div>`;
+}
+function toggleRow(ic,title,desc,on,act,arrow){
+  return `<div class="insight" data-act="${act}" style="cursor:pointer">
+    <div class="ic" style="background:var(--card2)">${ic}</div>
+    <div style="flex:1"><div class="t">${title}</div><div class="d">${desc}</div></div>
+    ${arrow?'<div style="color:var(--ink3);font-size:20px;align-self:center">›</div>':
+    `<div style="align-self:center"><div style="width:46px;height:27px;border-radius:999px;background:${on?'var(--acc)':'var(--line)'};position:relative;transition:.2s">
+      <div style="width:21px;height:21px;border-radius:50%;background:#fff;position:absolute;top:3px;${on?(LANG==='ar'?'left:3px':'right:3px'):(LANG==='ar'?'right:3px':'left:3px')};transition:.2s"></div></div></div>`}
+  </div>`;
+}
+
+/* ---- nav / fab ---- */
+function nav(){
+  const items=[['dash',t('dash'),'M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
+    ['budget',t('budget'),'M4 6h16M4 12h16M4 18h10'],
+    ['reports',t('reports'),'M4 19V5m6 14V9m6 10v-6m4 6V7'],
+    ['settings',t('settings'),'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M3 12h2m14 0h2M12 3v2m0 14v2']];
+  return `<div class="nav">${items.map(([k,l,p])=>`<button class="navb ${view===k?'on':''}" data-go="${k}">
+    <svg viewBox="0 0 24 24"><path d="${p}"/></svg>${l}</button>`).join('')}</div>`;
+}
+function fab(){ return `<button class="fab" data-act="addexpense">+</button>`; }
+
+function periodLabel(){const m={month:t('thisMonth'),last:t('lastMonth'),ytd:t('ytd'),custom:t('custom')};return m[period];}
+function fmtDate(d){const dt=new Date(d);
+  if(S.settings.hijri){try{return new Intl.DateTimeFormat(LANG==='ar'?'ar-SA-u-ca-islamic':'en-US-u-ca-islamic',{day:'numeric',month:'short'}).format(dt);}catch(e){}}
+  return new Intl.DateTimeFormat(LANG==='ar'?'ar-SA':'en-US',{day:'numeric',month:'short'}).format(dt);}
+
+/* ============ SHEETS ============ */
+function openSheet(html){
+  const s=document.createElement('div');s.className='scrim';s.id='scrim';
+  s.innerHTML=`<div class="sheet"><div class="grab"></div>${html}</div>`;
+  document.body.appendChild(s);
+  s.addEventListener('click',e=>{if(e.target===s)closeSheet();});
+}
+function closeSheet(){const s=document.getElementById('scrim');if(s)s.remove();}
+function toast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;
+  document.body.appendChild(el);setTimeout(()=>el.remove(),1900);}
+
+const EMOJIS=['🍔','🛒','🍽️','☕','🧾','📱','⚡','💧','🚗','⛽','🛍️','🏠','💊','🎓','✈️','🎬','💪','🐱','🎁','💰','📚','👕','🔧','🌐','💳','🏦'];
+
+function expenseSheet(prefill={}){
+  const catOpts=catSelectOptions(prefill.cat);
+  openSheet(`
+    <h3>${t('addExpense')}</h3>
+    <div class="seg" id="mode"><button class="on" data-mode="manual">${t('manual')}</button><button data-mode="sms">${t('sms')}</button></div>
+    <div id="smsbox" class="hidden">
+      <label>${t('pasteSms')}</label>
+      <textarea id="smstext" placeholder="${LANG==='ar'?'مثال: تم الشراء بمبلغ SAR 45.50 لدى TAMIMI بطاقة SNB ائتمان ••1234':'e.g. Purchase of SAR 45.50 at TAMIMI on SNB Credit ••1234'}"></textarea>
+      <button class="btn btn-ghost" id="parsebtn">${t('parse')}</button>
+      <div id="parsed"></div>
+    </div>
+    <div id="manualbox">
+      <label>${t('amount')} (SAR)</label><input id="amt" type="number" inputmode="decimal" value="${prefill.amount||''}" placeholder="0.00">
+      <label>${t('vendor')}</label><input id="ven" value="${prefill.vendor||''}" placeholder="${LANG==='ar'?'اسم المتجر':'Merchant name'}">
+      <div id="suggestbox"></div>
+      <label>${t('category')}</label><select id="cat">${catOpts}</select>
+      <div class="row2"><div><label>${t('date')}</label><input id="dt" type="date" value="${prefill.date||new Date().toISOString().slice(0,10)}"></div>
+      <div><label>${t('card')}</label><select id="card">${S.cards.map(c=>`<option ${prefill.card===c?'selected':''}>${c}</option>`).join('')}<option ${prefill.card&&!S.cards.includes(prefill.card)?'selected':''}>${prefill.card&&!S.cards.includes(prefill.card)?prefill.card:''}</option></select></div></div>
+      <label>${t('notes')}</label><input id="note" placeholder="${LANG==='ar'?'اختياري':'optional'}">
+      <button class="btn btn-pri" id="savetx">${t('save')}</button>
+    </div>`);
+  // mode toggle
+  document.querySelectorAll('#mode button').forEach(b=>b.onclick=()=>{
+    document.querySelectorAll('#mode button').forEach(x=>x.classList.remove('on'));b.classList.add('on');
+    const sms=b.dataset.mode==='sms';
+    document.getElementById('smsbox').classList.toggle('hidden',!sms);
+    document.getElementById('manualbox').classList.toggle('hidden',sms);
+  });
+  document.getElementById('parsebtn').onclick=()=>{
+    const txt=document.getElementById('smstext').value;if(!txt.trim())return;
+    const p=parseSMS(txt);const sug=suggestCat(p.vendor);
+    document.getElementById('parsed').innerHTML=`
+      <div class="insight" style="margin-top:14px"><div class="ic" style="background:var(--acc)22;color:var(--acc)">✓</div>
+      <div><div class="t">${t('detected')}</div><div class="d">
+        ${t('amount')}: <b>${p.amount?sar(p.amount):'—'}</b><br>
+        ${t('vendor')}: <b>${p.vendor||'—'}</b><br>
+        ${t('card')}: <b>${p.card||'—'}</b> · ${fmtDate(p.date)}</div></div></div>
+      ${sug?`<div class="note">💡 ${t('suggested')}: <b>${cname(catById(sug))}</b></div>`:''}
+      <button class="btn btn-pri" id="confirmsms">${t('confirm')}</button>`;
+    document.getElementById('confirmsms').onclick=()=>{
+      closeSheet();
+      expenseSheet({amount:p.amount,vendor:p.vendor,card:p.card,date:p.date,cat:sug||'uncat'});
+    };
+  };
+  // vendor suggestion live
+  const ven=document.getElementById('ven');
+  if(ven) ven.oninput=()=>{const sug=suggestCat(ven.value);const box=document.getElementById('suggestbox');
+    if(sug&&catById(sug)){box.innerHTML=`<div class="note">💡 ${t('suggested')}: <span class="pill on" id="usesug">${catById(sug).icon} ${cname(catById(sug))}</span></div>`;
+      document.getElementById('usesug').onclick=()=>{document.getElementById('cat').value=sug;};}else box.innerHTML='';};
+  const st=document.getElementById('savetx');
+  if(st) st.onclick=()=>{
+    const amt=parseFloat(document.getElementById('amt').value);
+    if(!amt||amt<=0){toast(t('amount'));return;}
+    const cat=document.getElementById('cat').value;
+    const ven2=document.getElementById('ven').value.trim();
+    if(ven2&&cat&&cat!=='uncat') S.vendorMap[ven2.toLowerCase()]=cat;
+    S.tx.push({id:uid(),amount:amt,vendor:ven2,date:document.getElementById('dt').value,
+      cat:cat,card:document.getElementById('card').value,note:document.getElementById('note').value});
+    save();closeSheet();toast(t('addedTx'));render();
+  };
+}
+function catSelectOptions(sel){
+  let o=`<option value="uncat" ${sel==='uncat'||!sel?'selected':''}>❓ ${t('uncategorized')}</option>`;
+  topCats().forEach(c=>{const kids=childrenOf(c.id);
+    if(kids.length){o+=`<optgroup label="${cname(c)}">`;
+      kids.forEach(k=>o+=`<option value="${k.id}" ${sel===k.id?'selected':''}>${k.icon} ${cname(k)}</option>`);
+      o+=`</optgroup>`;}
+    else o+=`<option value="${c.id}" ${sel===c.id?'selected':''}>${c.icon} ${cname(c)}</option>`;});
+  return o;
+}
+
+function catSheet(editId){
+  const c=editId?catById(editId):null;
+  const parents=topCats().filter(p=>!editId||p.id!==editId);
+  openSheet(`<h3>${editId?t('editCat'):t('addCat')}</h3>
+    <label>${t('catName')} (EN)</label><input id="cn_en" value="${c?c.name.en:''}" placeholder="Food">
+    <label>${t('catName')} (عربي)</label><input id="cn_ar" value="${c?c.name.ar:''}" placeholder="الطعام" dir="rtl">
+    <label>${t('chooseIcon')}</label>
+    <div class="emojipick" id="emo">${EMOJIS.map(e=>`<span class="${c&&c.icon===e?'on':''}" data-e="${e}">${e}</span>`).join('')}</div>
+    <label>${t('parent')}</label>
+    <select id="parent"><option value="">${t('none')}</option>
+      ${parents.map(p=>`<option value="${p.id}" ${c&&c.parent===p.id?'selected':''}>${p.icon} ${cname(p)}</option>`).join('')}</select>
+    <label>${t('budgetAmt')} (SAR)</label><input id="cbud" type="number" inputmode="decimal" value="${c?c.budget||'':''}" placeholder="0">
+    <button class="btn btn-pri" id="savecat">${t('save')}</button>
+    ${editId?`<button class="btn btn-bad" id="delcat">${t('delete')}</button>`:''}`);
+  let picked=c?c.icon:'🍔';
+  document.querySelectorAll('#emo span').forEach(s=>s.onclick=()=>{
+    document.querySelectorAll('#emo span').forEach(x=>x.classList.remove('on'));s.classList.add('on');picked=s.dataset.e;});
+  document.getElementById('savecat').onclick=()=>{
+    const en=document.getElementById('cn_en').value.trim(),ar=document.getElementById('cn_ar').value.trim();
+    if(!en&&!ar){toast(t('catName'));return;}
+    const data={name:{en:en||ar,ar:ar||en},icon:picked,
+      parent:document.getElementById('parent').value||null,budget:parseFloat(document.getElementById('cbud').value)||0};
+    if(editId){Object.assign(c,data);}else{S.cats.push({id:uid(),...data});}
+    save();closeSheet();toast(t('savedCat'));render();
+  };
+  if(editId)document.getElementById('delcat').onclick=()=>{
+    S.cats=S.cats.filter(x=>x.id!==editId&&x.parent!==editId);
+    S.tx.forEach(x=>{if(x.cat===editId)x.cat='uncat';});
+    save();closeSheet();drillCat=null;render();
+  };
+}
+
+function txSheet(id){
+  const x=S.tx.find(t=>t.id===id);if(!x)return;
+  openSheet(`<h3>${t('txDetail')}</h3>
+    <label>${t('amount')} (SAR)</label><input id="e_amt" type="number" value="${x.amount}">
+    <label>${t('vendor')}</label><input id="e_ven" value="${x.vendor||''}">
+    <label>${t('category')}</label><select id="e_cat">${catSelectOptions(x.cat)}</select>
+    <div class="row2"><div><label>${t('date')}</label><input id="e_dt" type="date" value="${x.date}"></div>
+    <div><label>${t('card')}</label><select id="e_card">${S.cards.map(c=>`<option ${x.card===c?'selected':''}>${c}</option>`).join('')}${x.card&&!S.cards.includes(x.card)?`<option selected>${x.card}</option>`:''}</select></div></div>
+    <label>${t('notes')}</label><input id="e_note" value="${x.note||''}">
+    <button class="btn btn-pri" id="e_save">${t('save')}</button>
+    <button class="btn btn-bad" id="e_del">${t('delete')}</button>`);
+  document.getElementById('e_save').onclick=()=>{
+    x.amount=parseFloat(document.getElementById('e_amt').value)||x.amount;
+    x.vendor=document.getElementById('e_ven').value.trim();
+    x.cat=document.getElementById('e_cat').value;
+    x.date=document.getElementById('e_dt').value;x.card=document.getElementById('e_card').value;
+    x.note=document.getElementById('e_note').value;
+    if(x.vendor&&x.cat&&x.cat!=='uncat')S.vendorMap[x.vendor.toLowerCase()]=x.cat;
+    save();closeSheet();toast(t('savedCat'));render();
+  };
+  document.getElementById('e_del').onclick=()=>{S.tx=S.tx.filter(t=>t.id!==id);save();closeSheet();toast(t('deletedTx'));render();};
+}
+
+function incomeSheet(){
+  openSheet(`<h3>${t('addIncome')}</h3>
+    <label>${t('amount')} (SAR)</label><input id="i_amt" type="number" inputmode="decimal" placeholder="0">
+    <label>${LANG==='ar'?'المصدر':'Source'}</label><input id="i_src" placeholder="${LANG==='ar'?'الراتب':'Salary'}">
+    <label>${t('date')}</label><input id="i_dt" type="date" value="${new Date().toISOString().slice(0,10)}">
+    <button class="btn btn-pri" id="i_save">${t('save')}</button>`);
+  document.getElementById('i_save').onclick=()=>{
+    const a=parseFloat(document.getElementById('i_amt').value);if(!a||a<=0)return;
+    S.income.push({id:uid(),amount:a,source:document.getElementById('i_src').value.trim(),date:document.getElementById('i_dt').value});
+    save();closeSheet();render();
+  };
+}
+
+function exportCSV(){
+  let csv='Date,Vendor,Category,Amount,Card,Notes\n';
+  S.tx.forEach(x=>{const c=catById(x.cat);csv+=`${x.date},"${x.vendor||''}","${c?cname(c):'Uncategorized'}",${x.amount},"${x.card||''}","${x.note||''}"\n`;});
+  const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='mizan-transactions.csv';a.click();URL.revokeObjectURL(url);
+  toast(t('exportData'));
+}
+
+/* ============ BIND ============ */
+function bind(){
+  document.querySelectorAll('[data-go]').forEach(el=>el.onclick=()=>{view=el.dataset.go;drillCat=null;searchQ='';render();});
+  document.querySelectorAll('[data-period]').forEach(el=>el.onclick=()=>{period=el.dataset.period;render();});
+  const cr0=document.getElementById('cr0'),cr1=document.getElementById('cr1');
+  if(cr0)cr0.onchange=cr1.onchange=()=>{if(cr0.value&&cr1.value){customRange=[cr0.value,cr1.value];render();}};
+  document.querySelectorAll('[data-drill]').forEach(el=>el.onclick=()=>{drillCat=el.dataset.drill;view='budget';render();});
+  document.querySelectorAll('[data-drillsub]').forEach(el=>el.onclick=()=>{/* show sub txs via search */ const k=catById(el.dataset.drillsub);searchQ=cname(k);view='budget';drillCat=null;render();});
+  document.querySelectorAll('[data-tx]').forEach(el=>el.onclick=()=>txSheet(el.dataset.tx));
+  document.querySelectorAll('[data-editcat]').forEach(el=>el.onclick=(e)=>{e.stopPropagation();catSheet(el.dataset.editcat);});
+  const search=document.getElementById('search');
+  if(search)search.oninput=()=>{searchQ=search.value;const cur=document.activeElement;render();const ns=document.getElementById('search');if(ns){ns.focus();ns.value=searchQ;ns.setSelectionRange(searchQ.length,searchQ.length);}};
+  document.querySelectorAll('[data-act]').forEach(el=>el.onclick=()=>{
+    const a=el.dataset.act;
+    if(a==='addexpense'){if(!S.cats.length){toast(t('needCat'));catSheet();return;}expenseSheet();}
+    if(a==='addcat')catSheet();
+    if(a==='importsms')expenseSheet();
+    if(a==='addincome')incomeSheet();
+    if(a==='export')exportCSV();
+    if(a==='togprivacy'){S.settings.privacy=!S.settings.privacy;save();render();}
+    if(a==='toglang'){LANG=LANG==='ar'?'en':'ar';localStorage.setItem('mizan_lang',LANG);render();}
+  });
+}
+/* ============ INBOUND FROM iOS SHORTCUT ============ */
+// Shortcut opens: index.html?sms=<encoded message text>
+function handleInbound(){
+  try{
+    const params=new URLSearchParams(location.search);
+    const raw=params.get('sms');
+    if(raw&&raw.trim()){
+      const txt=decodeURIComponent(raw);
+      const p=parseSMS(txt);
+      const sug=suggestCat(p.vendor);
+      render();
+      setTimeout(()=>{
+        expenseSheet({amount:p.amount,vendor:p.vendor,card:p.card,date:p.date,cat:sug||'uncat'});
+        toast(t('detected'));
+      },150);
+      history.replaceState({},'',location.pathname);
+      return true;
+    }
+  }catch(e){}
+  return false;
+}
+if(!handleInbound()) render();
+</script>
+</body>
+</html>
