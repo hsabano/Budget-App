@@ -296,7 +296,90 @@ const DEFAULT = {
 };
 let S = load();
 function load(){ try{ const r=localStorage.getItem('mizan_data'); return r?JSON.parse(r):structuredClone(DEFAULT);}catch(e){return structuredClone(DEFAULT);} }
-function save(){ localStorage.setItem('mizan_data',JSON.stringify(S)); }
+function save(){ localStorage.setItem('mizan_data',JSON.stringify(S)); scheduleCloudPush(); }
+
+// Local-only save (no cloud push) — used when applying data just loaded FROM cloud
+function saveLocal(){ localStorage.setItem('mizan_data',JSON.stringify(S)); }
+
+/* ===== Cloud persistence (categories, budgets, income, vendor map) =====
+   Supabase is the source of truth. Local storage is a fast cache.
+   On open: pull from cloud → render. On change: save local instantly → debounced push to cloud. */
+let cloudPushTimer=null, cloudReady=false;
+function scheduleCloudPush(){
+  if(!cloudReady||!SB.enabled||!SB.url||!SB.anonKey) return;
+  if(cloudPushTimer) clearTimeout(cloudPushTimer);
+  cloudPushTimer=setTimeout(pushAllToCloud, 1200);
+}
+
+async function sbWrite(path, rows){
+  // upsert helper
+  return fetch(`${SB.url}/rest/v1/${path}`,{method:'POST',
+    headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,
+      'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+    body:JSON.stringify(rows)});
+}
+async function sbDelete(path){
+  return fetch(`${SB.url}/rest/v1/${path}`,{method:'DELETE',
+    headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,'Prefer':'return=minimal'}});
+}
+
+async function pushAllToCloud(){
+  if(!cloudReady||!SB.enabled) return;
+  try{
+    // Categories: replace all (delete then insert) to handle removals + reorders
+    await sbDelete(`categories?id=neq.__none__`);
+    if(S.cats.length){
+      await sbWrite('categories', S.cats.map((c,i)=>({
+        id:c.id, name_en:c.name.en||'', name_ar:c.name.ar||'', icon:c.icon||'📁',
+        budget:c.budget||0, parent_id:c.parent||null, sort_order:i })));
+    }
+    // Income
+    await sbDelete(`income?id=neq.__none__`);
+    if(S.income.length){
+      await sbWrite('income', S.income.map(i=>({
+        id:i.id||uid(), amount:i.amount, source:i.source||'', income_date:i.date||null, kind:i.kind||'' })));
+    }
+    // Vendor map
+    await sbDelete(`vendor_map?vendor=neq.__none__`);
+    const vm=Object.entries(S.vendorMap||{});
+    if(vm.length) await sbWrite('vendor_map', vm.map(([v,c])=>({vendor:v, category_id:c})));
+    // Transaction categories (update each that has a cloud id)
+    for(const x of S.tx){
+      if(x.sb_tx_id&&x.cat&&x.cat!=='uncat'){
+        await fetch(`${SB.url}/rest/v1/transactions?id=eq.${x.sb_tx_id}`,{method:'PATCH',
+          headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,
+            'Content-Type':'application/json','Prefer':'return=minimal'},
+          body:JSON.stringify({category_id:x.cat})});
+      }
+    }
+  }catch(e){ console.warn('cloud push error',e); }
+}
+
+async function loadFromCloud(){
+  if(!SB.enabled||!SB.url||!SB.anonKey) return false;
+  try{
+    const [cats,inc,vm] = await Promise.all([
+      sbFetch('categories?order=sort_order.asc&select=*'),
+      sbFetch('income?select=*'),
+      sbFetch('vendor_map?select=*'),
+    ]);
+    if(Array.isArray(cats)){
+      S.cats = cats.map(c=>({ id:c.id, name:{en:c.name_en,ar:c.name_ar}, icon:c.icon,
+        budget:Number(c.budget)||0, parent:c.parent_id||null }));
+    }
+    if(Array.isArray(inc)){
+      // keep income coming from SMS (sb_tx_id) merged with manual
+      S.income = inc.map(i=>({ id:i.id, amount:Number(i.amount), source:i.source,
+        date:i.income_date, kind:i.kind }));
+    }
+    if(Array.isArray(vm)){
+      S.vendorMap = {}; vm.forEach(r=>{ if(r.vendor) S.vendorMap[r.vendor]=r.category_id; });
+    }
+    saveLocal();
+    cloudReady=true;
+    return true;
+  }catch(e){ console.warn('cloud load error',e); cloudReady=true; return false; }
+}
 
 let view='dash', period='month', customRange=null, drillCat=null, searchQ='';
 
@@ -306,6 +389,39 @@ let SB = loadSB();
 function loadSB(){ try{ const r=localStorage.getItem('mizan_sb'); return r?JSON.parse(r):{url:'',anonKey:'',enabled:false};}catch(e){return{url:'',anonKey:'',enabled:false};} }
 function saveSB(){ localStorage.setItem('mizan_sb',JSON.stringify(SB)); }
 let pollTimer=null, syncing=false, lastSyncedId=localStorage.getItem('mizan_last_sb_id')||null;
+
+/* ============ AUTH ============ */
+let AUTH = loadAuth();
+function loadAuth(){ try{ const r=localStorage.getItem('mizan_auth'); return r?JSON.parse(r):null; }catch(e){ return null; } }
+function saveAuth(a){ AUTH=a; if(a) localStorage.setItem('mizan_auth',JSON.stringify(a)); else localStorage.removeItem('mizan_auth'); }
+function isLoggedIn(){ return !!(AUTH&&AUTH.access_token); }
+// The token used for data requests: session token if logged in, else anon key
+function authToken(){ return (AUTH&&AUTH.access_token) ? AUTH.access_token : SB.anonKey; }
+
+async function signIn(email,password){
+  const res=await fetch(`${SB.url}/auth/v1/token?grant_type=password`,{method:'POST',
+    headers:{'apikey':SB.anonKey,'Content-Type':'application/json'},
+    body:JSON.stringify({email,password})});
+  if(!res.ok){ const e=await res.json().catch(()=>({})); throw new Error(e.error_description||e.msg||'Login failed'); }
+  const data=await res.json();
+  saveAuth({ access_token:data.access_token, refresh_token:data.refresh_token,
+    expires_at:Date.now()+(data.expires_in*1000), email });
+  return true;
+}
+async function refreshSession(){
+  if(!AUTH||!AUTH.refresh_token) return false;
+  try{
+    const res=await fetch(`${SB.url}/auth/v1/token?grant_type=refresh_token`,{method:'POST',
+      headers:{'apikey':SB.anonKey,'Content-Type':'application/json'},
+      body:JSON.stringify({refresh_token:AUTH.refresh_token})});
+    if(!res.ok) return false;
+    const data=await res.json();
+    saveAuth({ access_token:data.access_token, refresh_token:data.refresh_token,
+      expires_at:Date.now()+(data.expires_in*1000), email:AUTH.email });
+    return true;
+  }catch(e){ return false; }
+}
+function signOut(){ saveAuth(null); location.reload(); }
 
 /* ============ helpers ============ */
 const fmt = n => { const v=Math.round(n||0).toLocaleString(LANG==='ar'?'ar-SA':'en-US'); return v; };
@@ -466,10 +582,19 @@ function suggestCat(vendor){
 
 /* ============ SUPABASE SYNC ENGINE ============ */
 async function sbFetch(path, opts={}){
-  const res = await fetch(`${SB.url}/rest/v1/${path}`, {
-    headers:{ 'apikey': SB.anonKey, 'Authorization': `Bearer ${SB.anonKey}`,
+  let res = await fetch(`${SB.url}/rest/v1/${path}`, {
+    headers:{ 'apikey': SB.anonKey, 'Authorization': `Bearer ${authToken()}`,
       'Content-Type':'application/json', 'Prefer':'return=representation', ...opts.headers },
     ...opts });
+  if(res.status===401 && isLoggedIn()){
+    const ok=await refreshSession();
+    if(ok){
+      res = await fetch(`${SB.url}/rest/v1/${path}`, {
+        headers:{ 'apikey': SB.anonKey, 'Authorization': `Bearer ${authToken()}`,
+          'Content-Type':'application/json', 'Prefer':'return=representation', ...opts.headers },
+        ...opts });
+    }
+  }
   if(!res.ok){ const e=await res.text(); throw new Error(e); }
   return res.json();
 }
@@ -481,7 +606,7 @@ async function pollSupabase(){
     // 1) Ask the Edge Function to parse any new SMS (AI). Safe to call repeatedly.
     try{
       await fetch(`${SB.url}/functions/v1/parse-sms`,{method:'POST',
-        headers:{'Authorization':`Bearer ${SB.anonKey}`,'Content-Type':'application/json'},body:'{}'});
+        headers:{'Authorization':`Bearer ${authToken()}`,'Content-Type':'application/json'},body:'{}'});
     }catch(e){ /* function may be busy; app still reads below */ }
 
     // 2) Pull clean AI-parsed transactions we haven't imported yet
@@ -497,8 +622,8 @@ async function pollSupabase(){
       }else{
         const sug = suggestCat(row.vendor||row.label);
         S.tx.push({ id:uid(), sb_tx_id:row.id, amount:Number(row.amount), vendor:row.vendor||row.label||'',
-          date:row.tx_date||new Date().toISOString().slice(0,10), cat:row.category||sug||'uncat',
-          card:row.card||'', note:'', kind:row.kind, currency:row.currency,
+          date:row.tx_date||new Date().toISOString().slice(0,10), cat:row.category_id||row.category||sug||'uncat',
+          card:row.card||'', note:row.note||'', kind:row.kind, currency:row.currency,
           to:row.counterparty_to||'', from:row.counterparty_from||'', raw:row.raw, source:'ai' });
       }
       added++;
@@ -535,7 +660,64 @@ function showSyncToast(n){
 }
 
 const app=document.getElementById('app');
+
+/* ============ LOGIN SCREEN ============ */
+function loginScreen(){
+  const needsConfig = !SB.url||!SB.anonKey;
+  app.innerHTML=`
+  <div style="min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;padding:32px 24px;text-align:center">
+    <div class="logo" style="width:64px;height:64px;border-radius:20px;font-size:30px;margin-bottom:18px">M</div>
+    <h1 style="font-size:26px;margin:0 0 6px;font-weight:800">Mizan ${LANG==='ar'?'ميزان':''}</h1>
+    <div style="color:var(--ink3);font-size:14px;margin-bottom:28px">${t('appsub')}</div>
+    ${needsConfig?`
+      <div class="sbcard" style="width:100%;max-width:340px;text-align:start">
+        <div class="note" style="margin:0 0 10px">${LANG==='ar'?'أدخل إعدادات Supabase أولاً':'Enter your Supabase connection first'}</div>
+        <label>Project URL</label><input id="lg_url" placeholder="https://xxxx.supabase.co">
+        <label>Anon Key</label><input id="lg_key" type="password" placeholder="eyJ...">
+        <button class="btn btn-ghost" id="lg_savecfg">${LANG==='ar'?'حفظ':'Save connection'}</button>
+      </div>`:`
+      <div style="width:100%;max-width:340px;text-align:start">
+        <label>${LANG==='ar'?'البريد الإلكتروني':'Email'}</label>
+        <input id="lg_email" type="email" autocomplete="username" placeholder="you@email.com" inputmode="email">
+        <label>${LANG==='ar'?'كلمة المرور':'Password'}</label>
+        <input id="lg_pass" type="password" autocomplete="current-password" placeholder="••••••••">
+        <button class="btn btn-pri" id="lg_in">${LANG==='ar'?'تسجيل الدخول':'Sign in'}</button>
+        <div id="lg_err" style="color:var(--bad);font-size:13px;margin-top:12px;text-align:center"></div>
+      </div>`}
+    <button class="iconbtn" id="lg_lang" style="margin-top:24px;width:auto;padding:0 14px">${LANG==='ar'?'English':'العربية'}</button>
+  </div>`;
+  const lc=document.getElementById('lg_lang'); if(lc) lc.onclick=()=>{ LANG=LANG==='ar'?'en':'ar'; localStorage.setItem('mizan_lang',LANG); loginScreen(); };
+  const sc=document.getElementById('lg_savecfg');
+  if(sc) sc.onclick=()=>{
+    const url=(document.getElementById('lg_url').value||'').trim().replace(/\/$/,'');
+    const key=(document.getElementById('lg_key').value||'').trim();
+    if(!url||!key){toast('Enter URL and key');return;}
+    SB={url,anonKey:key,enabled:true}; saveSB(); loginScreen();
+  };
+  const inBtn=document.getElementById('lg_in');
+  if(inBtn) inBtn.onclick=async()=>{
+    const email=(document.getElementById('lg_email').value||'').trim();
+    const pass=document.getElementById('lg_pass').value||'';
+    const err=document.getElementById('lg_err');
+    if(!email||!pass){ err.textContent=LANG==='ar'?'أدخل البريد وكلمة المرور':'Enter email and password'; return; }
+    inBtn.textContent='…'; err.textContent='';
+    try{
+      await signIn(email,pass);
+      await bootAfterLogin();
+    }catch(e){
+      err.textContent=LANG==='ar'?'بيانات الدخول غير صحيحة':'Invalid email or password';
+      inBtn.textContent=LANG==='ar'?'تسجيل الدخول':'Sign in';
+    }
+  };
+}
+async function bootAfterLogin(){
+  if(SB.enabled&&SB.url&&SB.anonKey){ await loadFromCloud(); }
+  render(); startPolling();
+}
+
 function render(){
+  if(!isLoggedIn()){ loginScreen(); return; }
   document.body.className=LANG==='ar'?'ar':'';
   document.documentElement.lang=LANG; document.documentElement.dir=LANG==='ar'?'rtl':'ltr';
   app.innerHTML = header() + periodBar() + viewHTML() + nav() + fab();
@@ -813,8 +995,19 @@ create policy "u" on sms_inbox for update to anon using(true);</div>
       <div><div class="txname">${i.source||t('incomeV')}</div><div class="txmeta">${fmtDate(i.date)}</div></div>
       <div class="txamt" style="color:var(--acc)">+${sar(i.amount)}</div></div>`).join(''):''}
 
+    <div class="sectit"><h2>${LANG==='ar'?'الحساب':'Account'}</h2></div>
+    <div class="note" style="margin-bottom:8px">${AUTH&&AUTH.email?(LANG==='ar'?'مسجّل الدخول كـ ':'Signed in as ')+AUTH.email:''}</div>
+    <button class="btn btn-ghost" data-act="signout">🔓 ${LANG==='ar'?'تسجيل الخروج':'Sign out'}</button>
+
     <div class="sectit"><h2>${t('export')}</h2></div>
     <button class="btn btn-ghost" data-act="export">⬇︎ ${t('export')} (CSV)</button>
+
+    <div class="sectit"><h2>${LANG==='ar'?'إدارة البيانات':'Data Management'}</h2></div>
+    <button class="btn btn-ghost" data-act="clearcats">🗑️ ${LANG==='ar'?'حذف كل الفئات (البيانات التجريبية)':'Clear all categories (sample data)'}</button>
+    <button class="btn btn-ghost" data-act="cleartx" style="margin-top:10px">🧾 ${LANG==='ar'?'حذف كل العمليات':'Clear all transactions'}</button>
+    <button class="btn btn-bad" data-act="resetall" style="margin-top:10px">⚠️ ${LANG==='ar'?'إعادة ضبط كاملة (يبقى اتصال Supabase)':'Full reset (keeps Supabase connection)'}</button>
+    <div class="note">${LANG==='ar'?'إعادة الضبط تحذف الفئات والعمليات والدخل، لكنها تُبقي إعدادات المزامنة. لا يمكن التراجع.':'Reset clears categories, transactions, and income, but keeps your sync settings. Cannot be undone.'}</div>
+
     <div class="note" style="text-align:center;margin-top:24px">Mizan · ${t('resetInfo')}</div>
   </div>`;
 }
@@ -1020,6 +1213,24 @@ function incomeSheet(){
   };
 }
 
+function confirmSheet(title,desc,onYes){
+  openSheet(`<h3>${title}</h3>
+    <div class="d" style="color:var(--ink2);font-size:14px;line-height:1.5;margin-bottom:8px">${desc}</div>
+    <button class="btn btn-bad" id="cf_yes">${LANG==='ar'?'نعم، احذف':'Yes, clear'}</button>
+    <button class="btn btn-ghost" id="cf_no">${t('cancel')}</button>`);
+  document.getElementById('cf_yes').onclick=async()=>{ closeSheet(); await onYes(); };
+  document.getElementById('cf_no').onclick=()=>closeSheet();
+}
+
+async function purgeSupabaseTx(){
+  // Delete rows from Supabase transactions table so they don't re-import on next poll.
+  if(!SB.enabled||!SB.url||!SB.anonKey) return;
+  try{
+    await fetch(`${SB.url}/rest/v1/transactions?id=gt.0`,{method:'DELETE',
+      headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,'Prefer':'return=minimal'}});
+  }catch(e){ console.warn('purge error',e); }
+}
+
 function exportCSV(){
   let csv='Date,Vendor,Category,Amount,Card,Notes\n';
   S.tx.forEach(x=>{const c=catById(x.cat);csv+=`${x.date},"${x.vendor||''}","${c?cname(c):'Uncategorized'}",${x.amount},"${x.card||''}","${x.note||''}"\n`;});
@@ -1047,16 +1258,43 @@ function bind(){
     if(a==='importsms')expenseSheet();
     if(a==='addincome')incomeSheet();
     if(a==='export')exportCSV();
+    if(a==='clearcats'){ confirmSheet(
+      LANG==='ar'?'حذف كل الفئات؟':'Clear all categories?',
+      LANG==='ar'?'سيتم حذف كل الفئات التجريبية. عملياتك تبقى لكنها ستصبح غير مصنّفة.':'All sample categories will be removed. Your transactions stay but become uncategorized.',
+      async ()=>{ S.cats=[]; S.tx.forEach(x=>x.cat='uncat'); S.vendorMap={}; saveLocal(); await pushAllToCloud(); render(); toast(LANG==='ar'?'تم حذف الفئات':'Categories cleared'); }); }
+    if(a==='cleartx'){ confirmSheet(
+      LANG==='ar'?'حذف كل العمليات؟':'Clear all transactions?',
+      LANG==='ar'?'سيتم حذف كل العمليات والدخل من التطبيق.':'All transactions and income will be removed from the app.',
+      async ()=>{ await purgeSupabaseTx(); S.tx=[]; S.income=[]; saveLocal(); await pushAllToCloud(); render(); toast(LANG==='ar'?'تم حذف العمليات':'Transactions cleared'); }); }
+    if(a==='resetall'){ confirmSheet(
+      LANG==='ar'?'إعادة ضبط كاملة؟':'Full reset?',
+      LANG==='ar'?'يحذف الفئات والعمليات والدخل. يبقى اتصال Supabase. لا يمكن التراجع.':'Clears categories, transactions, and income. Keeps Supabase connection. Cannot be undone.',
+      async ()=>{ await purgeSupabaseTx(); S={cats:[],tx:[],income:[],vendorMap:{},cards:['SNB Credit Card','SNB Savings','SAB Account'],settings:S.settings}; saveLocal(); await pushAllToCloud(); drillCat=null; view='dash'; render(); toast(LANG==='ar'?'تمت إعادة الضبط':'Reset complete'); }); }
+    if(a==='signout'){ confirmSheet(LANG==='ar'?'تسجيل الخروج؟':'Sign out?',
+      LANG==='ar'?'ستحتاج لتسجيل الدخول مرة أخرى.':'You will need to sign in again.',
+      ()=>signOut()); }
     if(a==='togprivacy'){S.settings.privacy=!S.settings.privacy;save();render();}
     if(a==='toglang'){LANG=LANG==='ar'?'en':'ar';localStorage.setItem('mizan_lang',LANG);render();}
   });
   // Supabase settings binds
   const sbSave=document.getElementById('sb_save');
-  if(sbSave)sbSave.onclick=()=>{
+  if(sbSave)sbSave.onclick=async()=>{
     const url=(document.getElementById('sb_url').value||'').trim().replace(/\/$/,'');
     const key=(document.getElementById('sb_key').value||'').trim();
     if(!url||!key){toast('Enter both URL and Key');return;}
-    SB={url,anonKey:key,enabled:true};saveSB();startPolling();toast('✅ Supabase connected!');render();
+    SB={url,anonKey:key,enabled:true};saveSB();
+    // Check if cloud already has categories
+    try{
+      const existing=await sbFetch('categories?select=id&limit=1');
+      if(Array.isArray(existing)&&existing.length){
+        // Cloud has data → pull it down
+        await loadFromCloud(); toast('✅ Connected — loaded your cloud data');
+      }else{
+        // Cloud empty → push current local data up as the starting point
+        cloudReady=true; await pushAllToCloud(); toast('✅ Connected — your data is now backed up');
+      }
+    }catch(e){ cloudReady=true; toast('✅ Connected'); }
+    startPolling();render();
   };
   const sbTest=document.getElementById('sb_test');
   if(sbTest)sbTest.onclick=async()=>{
@@ -1096,9 +1334,22 @@ function handleInbound(){
   }catch(e){}
   return false;
 }
-if(!handleInbound()) render();
-// Start polling if Supabase was already configured
-startPolling();
+// Boot: handle auth first, then load data
+(async function boot(){
+  // No Supabase config yet → show login (which will prompt for config)
+  if(!SB.url||!SB.anonKey){ loginScreen(); return; }
+  // Have a session? Refresh if near expiry, then load
+  if(isLoggedIn()){
+    if(AUTH.expires_at && Date.now() > AUTH.expires_at - 60000){
+      const ok=await refreshSession();
+      if(!ok){ saveAuth(null); loginScreen(); return; }
+    }
+    if(!handleInbound()){ await loadFromCloud(); render(); }
+    startPolling();
+  } else {
+    loginScreen();
+  }
+})();
 </script>
 </body>
 </html>
