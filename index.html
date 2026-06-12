@@ -5,17 +5,19 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Mizan">
-<meta name="theme-color" content="#0b1220">
-<title>Mizan — Budget</title>
+<meta name="apple-mobile-web-app-title" content="Awzin">
+<link rel="apple-touch-icon" sizes="180x180" href="awzin-icon.png">
+<link rel="icon" type="image/png" href="awzin-icon.png">
+<meta name="theme-color" content="#070b13">
+<title>Awzin — Budget</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0b1220; --bg2:#0f1830; --card:#141f3a; --card2:#1a2747;
-  --line:#243353; --ink:#eaf0ff; --ink2:#9fb0d4; --ink3:#6b7da6;
-  --acc:#3ddc97; --acc2:#5b8cff; --warn:#ffb454; --bad:#ff6b81;
+  --bg:#070b13; --bg2:#0b121f; --card:#101828; --card2:#16213a;
+  --line:#1f2c48; --ink:#eef3ff; --ink2:#9fb0d4; --ink3:#6b7da6;
+  --acc:#2ee6a6; --acc2:#19c79a; --warn:#ffb454; --bad:#ff6b81;
   --gold:#e8c069; --shadow:0 18px 40px rgba(0,0,0,.45);
   --r:18px; --r2:14px;
 }
@@ -24,7 +26,7 @@ html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);
   font-family:'Sora',system-ui,sans-serif;overscroll-behavior:none}
 body.ar{font-family:'IBM Plex Sans Arabic',sans-serif}
 #app{max-width:480px;margin:0 auto;min-height:100vh;min-height:100dvh;
-  background:radial-gradient(120% 60% at 50% 0%, #11203f 0%, var(--bg) 55%);
+  background:radial-gradient(120% 60% at 50% 0%, #0e1825 0%, var(--bg) 55%);
   position:relative;padding-bottom:96px}
 .hidden{display:none!important}
 .bal-hidden{filter:blur(9px);transition:filter .2s}
@@ -62,12 +64,12 @@ body.ar{font-family:'IBM Plex Sans Arabic',sans-serif}
 .hero{background:linear-gradient(140deg,var(--card2),var(--card));border:1px solid var(--line);
   border-radius:var(--r);padding:20px;box-shadow:var(--shadow);position:relative;overflow:hidden}
 .hero::after{content:"";position:absolute;right:-40px;top:-40px;width:160px;height:160px;
-  background:radial-gradient(circle,rgba(61,220,151,.18),transparent 70%)}
+  background:radial-gradient(circle,rgba(46,230,166,.18),transparent 70%)}
 body.ar .hero::after{right:auto;left:-40px}
 .hero .lbl{color:var(--ink2);font-size:12px;font-weight:600;letter-spacing:.3px}
 .hero .big{font-size:34px;font-weight:800;letter-spacing:-1px;margin:4px 0 2px}
 .hero .sub{color:var(--ink3);font-size:13px}
-.bar{height:12px;border-radius:999px;background:#0c1530;margin-top:16px;overflow:hidden;
+.bar{height:12px;border-radius:999px;background:#0a1322;margin-top:16px;overflow:hidden;
   border:1px solid var(--line)}
 .bar>div{height:100%;border-radius:999px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
 .herometa{display:flex;justify-content:space-between;margin-top:12px;gap:10px}
@@ -92,7 +94,7 @@ body.ar .hero::after{right:auto;left:-40px}
 body.ar .catamt{text-align:left}
 .catamt .a{font-weight:700;font-size:15px}
 .catamt .b{color:var(--ink3);font-size:11px}
-.mini{height:7px;border-radius:999px;background:#0c1530;margin-top:11px;overflow:hidden}
+.mini{height:7px;border-radius:999px;background:#0a1322;margin-top:11px;overflow:hidden}
 .mini>div{height:100%;border-radius:999px;transition:width .5s}
 .pct{font-size:11px;font-weight:700;margin-top:7px;display:flex;justify-content:space-between}
 
@@ -110,7 +112,7 @@ body.ar .txamt{text-align:left}
 
 /* nav */
 .nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;
-  background:rgba(15,24,48,.92);backdrop-filter:blur(16px);border-top:1px solid var(--line);
+  background:rgba(9,14,23,.94);backdrop-filter:blur(16px);border-top:1px solid var(--line);
   display:flex;justify-content:space-around;padding:8px 6px calc(env(safe-area-inset-bottom) + 8px);z-index:50}
 .navb{flex:1;background:none;border:none;color:var(--ink3);font-family:inherit;
   display:flex;flex-direction:column;align-items:center;gap:3px;font-size:10px;font-weight:600;
@@ -120,7 +122,7 @@ body.ar .txamt{text-align:left}
 .navb.on{color:var(--acc)}
 .fab{position:fixed;bottom:calc(env(safe-area-inset-bottom) + 78px);inset-inline-end:calc(50% - 240px + 20px);
   width:58px;height:58px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));
-  border:none;color:#06281d;font-size:28px;font-weight:300;box-shadow:0 10px 30px rgba(61,220,151,.4);
+  border:none;color:#06281d;font-size:28px;font-weight:300;box-shadow:0 10px 30px rgba(46,230,166,.4);
   cursor:pointer;z-index:51;display:grid;place-items:center;transition:.15s}
 @media(max-width:480px){.fab{inset-inline-end:20px}}
 .fab:active{transform:scale(.9)}
@@ -212,6 +214,72 @@ textarea{resize:vertical;min-height:70px}
   color:var(--ink3);font-family:inherit}
 body.ar .copybox::after{right:auto;left:8px}
 
+/* ===== Redesigned home (matches approved mockup) ===== */
+.iconbtn{position:relative}
+.ndot{position:absolute;top:8px;inset-inline-end:9px;width:7px;height:7px;border-radius:50%;background:var(--acc)}
+.periodpill{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+  border-radius:999px;padding:9px 16px;font-size:13px;font-weight:600;color:var(--ink);font-family:inherit;
+  cursor:pointer;margin:6px 20px 0}
+.hrow{display:flex;gap:12px;margin-bottom:14px}
+.gcard{flex:0 0 136px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:13px;
+  display:flex;flex-direction:column;align-items:center}
+.gtitle{font-size:9.5px;color:var(--ink2);font-weight:700;letter-spacing:.5px;align-self:flex-start}
+.gwrap{position:relative;width:94px;height:94px;margin-top:8px}
+.gwrap svg{width:100%;height:100%}
+.gnum{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:21px;letter-spacing:-.5px}
+.glbl{font-size:11px;font-weight:700;margin-top:3px;text-align:center}
+.scard{flex:1;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;min-width:0}
+.stitle{font-size:13px;font-weight:700}
+.sbig{font-size:29px;font-weight:800;letter-spacing:-1px;margin-top:4px}
+.ssub{color:var(--ink3);font-size:11.5px;margin-top:2px}
+.stable{margin-top:12px;border-top:1px solid var(--line)}
+.stable>div{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--line);
+  font-size:12px;color:var(--ink2)}
+.stable>div:last-child{border-bottom:none}
+.stable b{color:var(--ink);font-weight:700}
+.ccard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px}
+.chead{display:flex;justify-content:space-between;align-items:center}
+.ctitle{font-size:12px;font-weight:800;letter-spacing:.6px}
+.csel{width:auto;padding:7px 28px 7px 12px;font-size:12px;border-radius:10px;background:var(--card2)}
+.cleg{display:flex;gap:14px;margin:11px 0 4px;font-size:10.5px;color:var(--ink2);flex-wrap:wrap}
+.cleg span{display:flex;align-items:center;gap:5px}
+.lln{width:14px;height:2px;background:var(--acc);display:inline-block}
+.lsq{width:8px;height:8px;background:var(--acc);border-radius:2px;display:inline-block}
+.lds{width:14px;height:0;border-top:2px dashed #9fb0d4;display:inline-block}
+.cbody{display:flex;gap:8px;align-items:stretch}
+.csvg{flex:1;min-width:0}
+.crail{flex:0 0 88px;display:flex;flex-direction:column;justify-content:center;gap:11px}
+.rk{font-size:9.5px;color:var(--ink3);font-weight:700;line-height:1.3}
+.rv{font-size:14px;font-weight:800;margin-top:2px}
+.acard{background:var(--card);border:1px solid rgba(255,107,129,.35);border-radius:18px;padding:15px;margin-bottom:14px;cursor:pointer}
+.arow{display:flex;gap:12px;align-items:flex-start}
+.aic{width:40px;height:40px;border-radius:12px;background:rgba(255,107,129,.15);display:grid;place-items:center;font-size:19px;flex:0 0 auto}
+.at{color:var(--bad);font-weight:800;font-size:14px}
+.ad{font-size:12.5px;color:var(--ink2);margin-top:3px;line-height:1.45}
+.aarr{margin-inline-start:auto;color:var(--ink3);font-size:20px}
+.acl{font-size:11px;color:var(--ink3);margin:11px 0 7px;font-weight:600}
+.acchips{display:flex;gap:8px;flex-wrap:wrap}
+.acchip{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:11.5px;font-weight:600}
+.acchip b{color:var(--bad)}
+.tcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:2px 15px;margin-bottom:14px}
+.trow{display:flex;align-items:center;gap:11px;padding:13px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.trow:last-child{border-bottom:none}
+.tnm{flex:0 0 92px;min-width:0}
+.tnm .cn{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tnm .cm{font-size:10px;color:var(--ink3);margin-top:1px}
+.tmid{flex:1;min-width:0}
+.tamt{font-size:12px}
+.tamt b{font-weight:700}
+.tamt span{color:var(--ink3);font-size:11px}
+.tmid .cbar{height:6px;border-radius:999px;background:#0a1326;margin-top:7px;overflow:hidden}
+.tmid .cbar>div{height:100%;border-radius:999px}
+.tright{flex:0 0 auto;text-align:end}
+.tpct{font-weight:800;font-size:13px}
+.chipstat{font-size:9px;font-weight:800;padding:4px 8px;border-radius:8px;margin-top:5px;display:inline-block;white-space:nowrap}
+.nfab{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));
+  border:none;color:#06281d;font-size:27px;font-weight:300;margin-top:-26px;cursor:pointer;
+  box-shadow:0 10px 26px rgba(46,230,166,.45);flex:0 0 auto}
+.nfab:active{transform:scale(.92)}
 </style>
 </head>
 <body>
@@ -219,7 +287,7 @@ body.ar .copybox::after{right:auto;left:8px}
 <script>
 /* ============ i18n ============ */
 const T = {
-  en:{appsub:"Personal Budget",dash:"Home",budget:"Budget",add:"Add",reports:"Reports",
+  en:{appsub:"Personal Budget",dash:"Home",budget:"Budget",add:"Add",reports:"Insights",
     settings:"Settings",totalBudget:"Total Budget",spent:"Spent",remaining:"Remaining",
     overspend:"Overspend",compliance:"On track",categories:"Categories",recent:"Recent",
     viewall:"View all",uncategorized:"Uncategorized",ofbudget:"of budget",
@@ -228,7 +296,7 @@ const T = {
     save:"Save",cancel:"Cancel",delete:"Delete",pasteSms:"Paste your bank SMS here",
     parse:"Detect transaction",manual:"Manual",sms:"SMS",addCat:"Add Category",
     catName:"Category name",icon:"Icon",budgetAmt:"Budget amount",parent:"Parent category",
-    none:"None (top level)",editCat:"Edit Category",noCats:"No categories yet",
+    none:"— Main category (no parent) —",editCat:"Edit Category",noCats:"No categories yet",
     noCatsD:"Create your first budget category to start tracking.",noTx:"No transactions",
     noTxD:"Add an expense or import one from a bank SMS.",thisMonth:"This Month",ytd:"YTD",
     custom:"Custom",lastMonth:"Last Month",used:"used",left:"left",over:"over",search:"Search transactions…",
@@ -245,7 +313,7 @@ const T = {
     cashflow:"Cash Flow",exportData:"Exported to file",addedTx:"Expense added",savedCat:"Category saved",
     deletedTx:"Transaction deleted",alertNear:"is near its budget limit",alertOver:"is over budget",
     chooseIcon:"Choose icon",seeMore:"see categories"},
-  ar:{appsub:"الميزانية الشخصية",dash:"الرئيسية",budget:"الميزانية",add:"إضافة",reports:"التقارير",
+  ar:{appsub:"الميزانية الشخصية",dash:"الرئيسية",budget:"الميزانية",add:"إضافة",reports:"الرؤى",
     settings:"الإعدادات",totalBudget:"إجمالي الميزانية",spent:"المصروف",remaining:"المتبقي",
     overspend:"تجاوز",compliance:"ضمن الحد",categories:"الفئات",recent:"الأحدث",
     viewall:"عرض الكل",uncategorized:"غير مصنّف",ofbudget:"من الميزانية",
@@ -254,7 +322,7 @@ const T = {
     save:"حفظ",cancel:"إلغاء",delete:"حذف",pasteSms:"الصق رسالة البنك هنا",
     parse:"اكتشاف العملية",manual:"يدوي",sms:"رسالة",addCat:"إضافة فئة",
     catName:"اسم الفئة",icon:"أيقونة",budgetAmt:"مبلغ الميزانية",parent:"الفئة الرئيسية",
-    none:"بدون (مستوى أعلى)",editCat:"تعديل الفئة",noCats:"لا توجد فئات بعد",
+    none:"— فئة رئيسية (بدون أصل) —",editCat:"تعديل الفئة",noCats:"لا توجد فئات بعد",
     noCatsD:"أنشئ أول فئة ميزانية لتبدأ التتبع.",noTx:"لا توجد عمليات",
     noTxD:"أضف مصروفاً أو استورده من رسالة البنك.",thisMonth:"هذا الشهر",ytd:"السنة",
     custom:"مخصّص",lastMonth:"الشهر الماضي",used:"مستخدم",left:"متبقٍ",over:"تجاوز",search:"ابحث في العمليات…",
@@ -381,12 +449,17 @@ async function loadFromCloud(){
   }catch(e){ console.warn('cloud load error',e); cloudReady=true; return false; }
 }
 
-let view='dash', period='month', customRange=null, drillCat=null, searchQ='';
+let view='dash', period='month', customRange=null, drillCat=null, searchQ='', chartMode=null;
 
 /* ============ SUPABASE CONFIG ============ */
-// Stored separately so it survives a data reset
+// Connection defaults are embedded so any device goes straight to login.
+// (The anon key is safe to ship in the client: data access requires authentication via RLS.)
+const SB_DEFAULTS={url:'https://flydzuucvzqkadhqrubp.supabase.co',
+  anonKey:'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZseWR6dXVjdnpxa2FkaHFydWJwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2ODUyNTksImV4cCI6MjA5NjI2MTI1OX0.YPMte-bkjZOQdpj3hELBSSZstLT7zH0nPMiIdrR9Vgo',
+  enabled:true};
 let SB = loadSB();
-function loadSB(){ try{ const r=localStorage.getItem('mizan_sb'); return r?JSON.parse(r):{url:'',anonKey:'',enabled:false};}catch(e){return{url:'',anonKey:'',enabled:false};} }
+function loadSB(){ try{ const r=localStorage.getItem('mizan_sb'); const v=r?JSON.parse(r):null;
+  if(v&&v.url&&v.anonKey) return v; return {...SB_DEFAULTS}; }catch(e){ return {...SB_DEFAULTS}; } }
 function saveSB(){ localStorage.setItem('mizan_sb',JSON.stringify(SB)); }
 let pollTimer=null, syncing=false, lastSyncedId=localStorage.getItem('mizan_last_sb_id')||null;
 
@@ -491,6 +564,9 @@ function parseSMS(text){
   if(otpPromo.some(re=>re.test(raw)) && !txHeaders.test(raw)){ res.ignore=true; return res; }
   if(!hasAmount && !txHeaders.test(raw)){ res.ignore=true; return res; }
 
+  // Transfers between the user's OWN accounts never affect the budget — ignore entirely
+  if(/بين حساباتك|between your (own )?accounts/i.test(raw)){ res.ignore=true; res.kind='own_transfer'; return res; }
+
   // ---- 2) Amount + currency (handles "SAR 7500.00", "2,500.00 SAR", "0.00 USD") ----
   const amt = raw.match(/(?:مبلغ|amount)\s*[:：]?\s*(SAR|USD|SR)?\s*([\d,]+\.?\d*)\s*(SAR|USD|SR)?/i)
            || raw.match(/(SAR|USD|SR)\s*([\d,]+\.?\d*)/i)
@@ -521,9 +597,10 @@ function parseSMS(text){
   }
 
   // ---- 5) From / To / IBAN / Bank (transfers & deposits) ----
-  const fromM = raw.match(/(?:من|from)\s*[:：]\s*([^\n]+)/i);
-  const toM   = raw.match(/(?:إلى|الى|to)\s*[:：]\s*([^\n]+)/i);
-  const ibanM = raw.match(/(?:آيبان|ايبان|iban)\s*[:：]\s*([^\n]+)/i);
+  // Line-anchored, colon optional ("إلى:شذى الاشي" or "من 7210*"); first إلى line = recipient name
+  const fromM = raw.match(/(?:^|\n)\s*(?:من|from)\s*[:：]?\s*([^\n]+)/i);
+  const toM   = raw.match(/(?:^|\n)\s*(?:إلى|الى|to)\s*[:：]?\s*([^\n]+)/i);
+  const ibanM = raw.match(/(?:^|\n)\s*(?:آيبان|ايبان|iban)\s*[:：]?\s*([^\n]+)/i);
   const bankM = raw.match(/(بنك[^\n]+|[A-Za-z ]*bank[^\n]*)/i);
   if(fromM) res.from=fromM[1].trim();
   if(toM)   res.to=toM[1].trim();
@@ -615,13 +692,17 @@ async function pollSupabase(){
     let added=0;
     for(const row of rows){
       if(S.tx.find(x=>x.sb_tx_id===row.id)||S.income.find(x=>x.sb_tx_id===row.id)) continue;
+      // Safety net: transfers between the user's own accounts never count
+      if(row.raw && /بين حساباتك/.test(row.raw)) continue;
       if(row.flow==='in'){
         S.income.push({ id:uid(), sb_tx_id:row.id, amount:Number(row.amount),
           source:row.counterparty_from||row.vendor||row.label||(LANG==='ar'?'إيداع':'Deposit'),
           date:row.tx_date||new Date().toISOString().slice(0,10), kind:row.kind, card:row.card||'', raw:row.raw });
       }else{
-        const sug = suggestCat(row.vendor||row.label);
-        S.tx.push({ id:uid(), sb_tx_id:row.id, amount:Number(row.amount), vendor:row.vendor||row.label||'',
+        const xferVendor=(row.kind==='transfer_out'&&row.counterparty_to)?((LANG==='ar'?'حوالة إلى ':'Transfer to ')+row.counterparty_to):'';
+        const vend=row.vendor||xferVendor||row.label||'';
+        const sug = suggestCat(vend);
+        S.tx.push({ id:uid(), sb_tx_id:row.id, amount:Number(row.amount), vendor:vend,
           date:row.tx_date||new Date().toISOString().slice(0,10), cat:row.category_id||row.category||sug||'uncat',
           card:row.card||'', note:row.note||'', kind:row.kind, currency:row.currency,
           to:row.counterparty_to||'', from:row.counterparty_from||'', raw:row.raw, source:'ai' });
@@ -667,8 +748,9 @@ function loginScreen(){
   app.innerHTML=`
   <div style="min-height:100vh;min-height:100dvh;display:flex;flex-direction:column;
     align-items:center;justify-content:center;padding:32px 24px;text-align:center">
-    <div class="logo" style="width:64px;height:64px;border-radius:20px;font-size:30px;margin-bottom:18px">M</div>
-    <h1 style="font-size:26px;margin:0 0 6px;font-weight:800">Mizan ${LANG==='ar'?'ميزان':''}</h1>
+    <div class="logo" style="width:72px;height:72px;border-radius:20px;margin-bottom:18px;background:var(--card2);border:1px solid var(--line);box-shadow:0 0 28px rgba(46,230,166,.18)"><svg width="38" height="38" viewBox="0 0 24 24" style="filter:drop-shadow(0 0 5px rgba(46,230,166,.45))"><rect x="2.5" y="7.5" width="19" height="3.6" rx="1.8" fill="#2ee6a6"/><path d="M8.6 14 h6.8 L12 19.4 Z" fill="#2ee6a6"/></svg></div>
+    <h1 style="font-size:32px;margin:0 0 2px;font-weight:800">أوزن</h1>
+    <div style="color:var(--acc);letter-spacing:.4em;font-size:13px;font-weight:700;margin:0 0 6px;padding-inline-start:.4em">AWZIN</div>
     <div style="color:var(--ink3);font-size:14px;margin-bottom:28px">${t('appsub')}</div>
     ${needsConfig?`
       <div class="sbcard" style="width:100%;max-width:340px;text-align:start">
@@ -726,22 +808,21 @@ function render(){
 function header(){
   const pv=S.settings.privacy;
   const syncOn=SB.enabled&&SB.url&&SB.anonKey;
+  const hasAlerts=alertItems().length>0;
   return `<div class="top">
-    <div class="brand"><div class="logo">M</div>
-      <div><h1>Mizan ${LANG==='ar'?'ميزان':''}</h1>
+    <div class="brand">
+      <div class="logo" style="background:var(--card2);border:1px solid var(--line)"><svg width="22" height="22" viewBox="0 0 24 24" style="filter:drop-shadow(0 0 4px rgba(46,230,166,.4))"><rect x="2.5" y="7.5" width="19" height="3.6" rx="1.8" fill="#2ee6a6"/><path d="M8.6 14 h6.8 L12 19.4 Z" fill="#2ee6a6"/></svg></div>
+      <div><h1>${LANG==='ar'?'أوزن':'Awzin'}</h1>
         <small>${t('appsub')} <span class="syncpulse ${syncOn?'':'syncoff'}" title="${syncOn?'Live sync on':'Sync off'}"></span></small>
       </div></div>
     <div class="tbtns">
       <button class="iconbtn ${pv?'on':''}" data-act="togprivacy" title="privacy">${pv?'🙈':'👁'}</button>
-      <button class="iconbtn" data-act="toglang">${LANG==='ar'?'EN':'ع'}</button>
+      <button class="iconbtn" data-act="notifs" title="alerts">🔔${hasAlerts?'<span class="ndot"></span>':''}</button>
     </div></div>`;
 }
 function periodBar(){
   if(view!=='dash'&&view!=='reports'&&view!=='budget') return '';
-  const opts=[['month',t('thisMonth')],['last',t('lastMonth')],['ytd',t('ytd')],['custom',t('custom')]];
-  return `<div class="period">${opts.map(([k,l])=>`<button class="chip ${period===k?'on':''}" data-period="${k}">${l}</button>`).join('')}
-    ${period==='custom'?`<input type="date" id="cr0" style="width:auto;padding:6px 8px;font-size:12px" value="${customRange?customRange[0]:''}">
-      <input type="date" id="cr1" style="width:auto;padding:6px 8px;font-size:12px" value="${customRange?customRange[1]:''}">`:''}</div>`;
+  return `<div><button class="periodpill" data-act="periodpick">📅 ${periodLabel()} <span style="color:var(--ink3)">▾</span></button></div>`;
 }
 function viewHTML(){
   if(view==='dash') return dashView();
@@ -751,41 +832,161 @@ function viewHTML(){
   return '';
 }
 
-/* ---- Dashboard ---- */
-function dashView(){
+/* ---- Dashboard (matches approved design; all values computed live) ---- */
+function dashStats(){
   const list=txInPeriod();
-  const tb=totalBudget(), sp=totalSpent(list), rem=tb-sp;
-  const pct=tb>0?Math.min(100,(sp/tb)*100):0;
-  const over=sp>tb&&tb>0;
-  const col=over?'var(--bad)':pct>=90?'var(--warn)':'var(--acc)';
-  const pv=S.settings.privacy?'bal-hidden':'';
-  // alerts
-  let alerts='';
-  topCats().forEach(c=>{const b=catBudget(c),s=catSpent(c.id,list);const st=statusOf(s,b);
-    if(st==='over')alerts+=`<div class="alertbar">⚠️ <span><b>${cname(c)}</b> ${t('alertOver')}</span></div>`;
-    else if(st==='warn')alerts+=`<div class="alertbar">🔔 <span><b>${cname(c)}</b> ${t('alertNear')}</span></div>`;});
+  const tb=totalBudget();
+  const sp=list.reduce((a,x)=>a+(x.amount||0),0);
+  const [ps,pe]=periodRange();
+  const msDay=86400000;
+  const daysInPeriod=Math.max(1,Math.floor((pe-ps)/msDay)+1);
+  const now=new Date();
+  const isCur=period==='month';
+  const dayOf=isCur?Math.min(now.getDate(),daysInPeriod):daysInPeriod;
+  const dayFrac=dayOf/daysInPeriod;
+  const expected=tb*dayFrac;
+  const pace=expected>0?sp/expected:0;
+  const projection=(isCur&&dayOf>0)?(sp/dayOf)*daysInPeriod:sp;
+  const daily=new Array(daysInPeriod).fill(0);
+  list.forEach(x=>{const d=new Date(x.date);const idx=Math.floor((d-ps)/msDay);if(idx>=0&&idx<daysInPeriod)daily[idx]+=x.amount;});
+  const cum=[];let c=0;for(let i=0;i<daysInPeriod;i++){c+=daily[i];cum.push(c);}
+  const usedPct=tb>0?(sp/tb)*100:(sp>0?999:0);
+  return {list,tb,sp,rem:tb-sp,daysInPeriod,dayOf,dayFrac,pace,projection,projOver:projection-tb,daily,cum,usedPct,isCur};
+}
+function niceCeil(v){const p=Math.pow(10,Math.floor(Math.log10(Math.max(v,1))));const n=v/p;const m=n<=1?1:n<=2?2:n<=5?5:10;return m*p;}
+function kfmt(v){return v>=1000?(Math.round(v/100)/10).toString().replace(/\.0$/,'')+'K':String(Math.round(v));}
 
-  const recent=[...S.tx].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
-  const cats=topCats();
-  return `<div class="view">
-    <div class="hero">
-      <div class="lbl">${t('totalBudget')} · ${periodLabel()}</div>
-      <div class="big ${pv}">${sar(tb)}</div>
-      <div class="sub">${t('spent')} <b class="${pv}" style="color:var(--ink)">${sar(sp)}</b></div>
-      <div class="bar"><div style="width:${pct}%;background:linear-gradient(90deg,${col},${col})"></div></div>
-      <div class="herometa">
-        <div><div class="k">${t('spent')}</div><div class="v ${pv}">${sar(sp)}</div></div>
-        <div><div class="k">${over?t('overspend'):t('remaining')}</div>
-          <div class="v ${pv}" style="color:${over?'var(--bad)':'var(--acc)'}">${sar(Math.abs(rem))}</div></div>
-        <div><div class="k">${t('compliance')}</div><div class="v">${tb>0?Math.max(0,Math.round(100-pct))+'%':'—'}</div></div>
+function gaugeHTML(st){
+  const tb=st.tb,used=st.usedPct;
+  const col=tb===0?'var(--ink3)':used>100?'var(--bad)':used>=70?'var(--warn)':'var(--acc)';
+  const lbl=tb===0?(LANG==='ar'?'حدد ميزانية':'Set a budget'):used>100?(LANG==='ar'?'تجاوزت الميزانية':'Over Budget'):used>=70?(LANG==='ar'?'مراقبة':'Watch'):(LANG==='ar'?'ضمن الحد':'On Track');
+  const r=42,circ=2*Math.PI*r,track=circ*0.75,fill=track*Math.min(tb>0?used:0,100)/100;
+  return `<div class="gcard">
+    <div class="gtitle">${LANG==='ar'?'صحة الميزانية':'BUDGET HEALTH'}</div>
+    <div class="gwrap" dir="ltr">
+      <svg viewBox="0 0 100 100">
+        <circle cx="50" cy="50" r="${r}" fill="none" stroke="#0a1322" stroke-width="9" stroke-linecap="round" stroke-dasharray="${track} ${circ}" transform="rotate(135 50 50)"/>
+        ${fill>0?`<circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${fill} ${circ}" transform="rotate(135 50 50)"/>`:''}
+      </svg>
+      <div class="gnum">${tb>0?Math.round(used)+'%':'—'}</div>
+    </div>
+    <div class="glbl" style="color:${col}">${lbl}</div>
+  </div>`;
+}
+
+function statusCardHTML(st){
+  const pv=S.settings.privacy?'bal-hidden':'';
+  let title,big,sub,tcol;
+  if(st.tb===0){tcol='var(--ink2)';title=LANG==='ar'?'لا توجد ميزانية بعد':'No budget set yet';big=sar(st.sp);sub=LANG==='ar'?'المصروف هذه الفترة':'spent this period';}
+  else if(st.sp>st.tb){tcol='var(--bad)';title=LANG==='ar'?'تجاوزت ميزانيتك':"You're over budget";big=sar(st.sp-st.tb);sub=LANG==='ar'?'فوق ميزانيتك حتى الآن':'over your budget so far';}
+  else if(st.isCur&&st.pace>=1.15){tcol='var(--warn)';title=LANG==='ar'?'تتجه لتجاوز الميزانية':'Trending over budget';big=sar(Math.max(0,Math.round(st.projOver)));sub=LANG==='ar'?'التجاوز المتوقع هذا الشهر':'projected overspend this month';}
+  else{tcol='var(--acc)';title=LANG==='ar'?'أنت ضمن الحد':"You're on track";big=sar(st.rem);sub=LANG==='ar'?'متبقٍ للصرف':'left to spend';}
+  const remPct=st.tb>0?Math.round((st.rem/st.tb)*1000)/10:null;
+  return `<div class="scard">
+    <div class="stitle" style="color:${tcol}">${title}</div>
+    <div class="sbig ${pv}">${big}</div>
+    <div class="ssub">${sub}</div>
+    <div class="stable">
+      <div><span>${t('budget')}</span><b class="${pv}">${sar(st.tb)}</b></div>
+      <div><span>${t('spent')}</span><b class="${pv}">${sar(st.sp)}</b></div>
+      <div><span>${t('remaining')}</span><b style="color:${st.rem<0?'var(--bad)':'var(--acc)'}">${remPct===null?'—':remPct+'%'}</b></div>
+    </div>
+  </div>`;
+}
+
+function spendChartHTML(st){
+  const days=st.daysInPeriod;
+  const mode=chartMode||(days>45?'weekly':'daily');
+  const pv=S.settings.privacy?'bal-hidden':'';
+  const W=320,H=200,L=30,Rm=4,T=8,B=22,pW=W-L-Rm,pH=H-T-B;
+  const proj=st.isCur?st.projection:st.sp;
+  const yMax=niceCeil(Math.max(st.cum[days-1]||0,st.tb,proj,100)*1.08);
+  const X=i=>L+pW*(i+0.5)/days, Y=v=>T+pH-pH*v/yMax;
+  let grid='';
+  for(let g=0;g<=4;g++){const v=yMax*g/4;const yy=Y(v);
+    grid+=`<line x1="${L}" x2="${W-Rm}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}" stroke="#16223c" stroke-width="1"/><text x="${L-4}" y="${(yy+2.6).toFixed(1)}" font-size="7" fill="#6b7da6" text-anchor="end">${kfmt(v)}</text>`;}
+  let bars='';const avg=days>0?st.tb/days:0;
+  if(mode==='daily'){const bw=Math.max(1.5,pW/days*0.5);
+    st.daily.forEach((v,i)=>{if(v<=0)return;const col=avg>0&&v>2*avg?'#ff6b81':avg>0&&v>avg?'#ffb454':'#2ee6a6';
+      bars+=`<rect x="${(X(i)-bw/2).toFixed(1)}" y="${Y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0,Y(0)-Y(v)).toFixed(1)}" rx="1" fill="${col}" opacity=".85"/>`;});
+  }else{const wk=Math.ceil(days/7),bw=Math.max(3,pW/wk*0.5);
+    for(let w=0;w<wk;w++){let v=0;for(let d=w*7;d<Math.min(days,(w+1)*7);d++)v+=st.daily[d];if(v<=0)continue;
+      const cx=L+pW*(w+0.5)/wk,wavg=avg*7,col=wavg>0&&v>2*wavg?'#ff6b81':wavg>0&&v>wavg?'#ffb454':'#2ee6a6';
+      bars+=`<rect x="${(cx-bw/2).toFixed(1)}" y="${Y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0,Y(0)-Y(v)).toFixed(1)}" rx="1.5" fill="${col}" opacity=".85"/>`;}}
+  let lp='';
+  for(let i=0;i<st.dayOf;i++){lp+=(i?'L':'M')+X(i).toFixed(1)+','+Y(st.cum[i]).toFixed(1);}
+  const ap=st.dayOf>0?lp+`L${X(st.dayOf-1).toFixed(1)},${Y(0).toFixed(1)}L${X(0).toFixed(1)},${Y(0).toFixed(1)}Z`:'';
+  const bl=st.tb>0?`<line x1="${L}" x2="${W-Rm}" y1="${Y(st.tb).toFixed(1)}" y2="${Y(st.tb).toFixed(1)}" stroke="#9fb0d4" stroke-width="1.2" stroke-dasharray="4 4"/>`:'';
+  let pr='';
+  if(st.isCur&&st.dayOf>0&&st.dayOf<days){
+    pr=`<line x1="${X(st.dayOf-1).toFixed(1)}" y1="${Y(st.cum[st.dayOf-1]).toFixed(1)}" x2="${X(days-1).toFixed(1)}" y2="${Y(proj).toFixed(1)}" stroke="#eaf0ff" stroke-width="1.4" stroke-dasharray="2 4"/><circle cx="${X(st.dayOf-1).toFixed(1)}" cy="${Y(st.cum[st.dayOf-1]).toFixed(1)}" r="3.4" fill="#2ee6a6"/><circle cx="${X(days-1).toFixed(1)}" cy="${Y(proj).toFixed(1)}" r="3.4" fill="none" stroke="#eaf0ff" stroke-width="1.4"/>`;}
+  let xl='';const step=days>45?Math.ceil(days/6):days>15?5:2;
+  for(let i=0;i<days;i++){const dn=i+1;if(dn===1||dn%step===0||dn===days)xl+=`<text x="${X(i).toFixed(1)}" y="${H-8}" font-size="7" fill="#6b7da6" text-anchor="middle">${dn}</text>`;}
+  const riskPct=st.tb>0?Math.round((proj-st.tb)/st.tb*100):null;
+  const riskTxt=riskPct===null?'—':(st.isCur?(riskPct>=0?'+':'')+riskPct+'%':Math.round(st.usedPct)+'%');
+  const riskCol=(riskPct!==null&&(st.isCur?riskPct>0:st.usedPct>100))?'var(--bad)':'var(--acc)';
+  return `<div class="ccard">
+    <div class="chead"><div class="ctitle">${LANG==='ar'?'الصرف عبر الوقت':'SPEND OVER TIME'}</div>
+      <select id="chartmode" class="csel"><option value="daily" ${mode==='daily'?'selected':''}>${LANG==='ar'?'يومي':'Daily'}</option><option value="weekly" ${mode==='weekly'?'selected':''}>${LANG==='ar'?'أسبوعي':'Weekly'}</option></select></div>
+    <div class="cleg"><span><i class="lln"></i>${LANG==='ar'?'الصرف التراكمي':'Cumulative Spend'}</span><span><i class="lsq"></i>${LANG==='ar'?'الصرف اليومي':'Daily Spend'}</span><span><i class="lds"></i>${t('budget')}</span></div>
+    <div class="cbody">
+      <div class="csvg" dir="ltr"><svg viewBox="0 0 ${W} ${H}" width="100%">${grid}${bars}${ap?`<path d="${ap}" fill="rgba(46,230,166,.12)"/>`:''}${lp?`<path d="${lp}" fill="none" stroke="#2ee6a6" stroke-width="2"/>`:''}${bl}${pr}${xl}</svg></div>
+      <div class="crail">
+        <div><div class="rk">${st.isCur?(LANG==='ar'?'المتوقع نهاية الشهر':'Projected Month End'):(LANG==='ar'?'الإجمالي':'Total Spent')}</div><div class="rv ${pv}" style="color:var(--acc)">${sar(Math.round(proj))}</div></div>
+        <div><div class="rk">${t('budget')}</div><div class="rv ${pv}">${sar(st.tb)}</div></div>
+        <div><div class="rk">${st.isCur?(LANG==='ar'?'المخاطرة':'Risk'):(LANG==='ar'?'المستخدم':'Used')}</div><div class="rv" style="color:${riskCol}">${riskTxt}</div><div class="rk" style="margin-top:1px">${LANG==='ar'?'مقابل الميزانية':'vs budget'}</div></div>
       </div>
     </div>
-    ${alerts}
-    <div class="sectit"><h2>${t('categories')}</h2><a data-go="budget">${t('viewall')}</a></div>
-    ${cats.length?cats.map(c=>catCard(c,list)).join(''):emptyCats()}
-    <div class="sectit"><h2>${t('recent')}</h2>${S.tx.length>5?`<a data-go="budget">${t('viewall')}</a>`:''}</div>
-    ${recent.length?recent.map(txRow).join(''):`<div class="empty"><div class="e">🧾</div><p>${t('noTxD')}</p></div>`}
-    <div class="note" style="text-align:center;margin-top:18px">${t('resetInfo')}</div>
+  </div>`;
+}
+
+function alertCardHTML(st){
+  if(!(st.tb>0&&(st.sp>st.tb||(st.isCur&&st.pace>=1.15))))return '';
+  const contrib=topCats().map(c=>{const b=catBudget(c),s=catSpent(c.id,st.list);
+    return{c,s,r:(b>0&&st.dayFrac>0)?s/(b*st.dayFrac)-1:(s>0&&b===0?1:-1)};})
+    .filter(o=>o.r>0.05&&o.s>0).sort((a,b)=>b.r-a.r).slice(0,3);
+  const chips=contrib.map(o=>`<span class="acchip">${o.c.icon} ${cname(o.c)} <b>+${Math.round(o.r*100)}%</b></span>`).join('');
+  const exceed=Math.max(0,Math.round(st.projOver));
+  return `<div class="acard" data-go="reports">
+    <div class="arow"><div class="aic">🚨</div><div style="min-width:0"><div class="at">${LANG==='ar'?'تنبيه الميزانية':'Budget Alert'}</div>
+      <div class="ad">${LANG==='ar'?'تصرف بوتيرة':"You're spending"} <b style="color:var(--bad)">${st.pace.toFixed(1)}×</b> ${LANG==='ar'?'أسرع من المخطط.':'faster than planned.'}</div></div>
+      <div class="aarr">›</div></div>
+    ${chips?`<div class="acl">${LANG==='ar'?'الأكثر مساهمة:':'Top contributors:'}</div><div class="acchips">${chips}</div>`:''}
+    ${st.isCur&&exceed>0?`<div class="ad" style="margin-top:11px">${LANG==='ar'?'بهذه الوتيرة ستتجاوز الميزانية بمقدار':"At this pace you'll exceed budget by"} <b style="color:var(--bad)">${sar(exceed)}</b>.</div>`:''}
+  </div>`;
+}
+
+function topCatsHTML(st){
+  const rows=topCats().map(c=>({c,b:catBudget(c),s:catSpent(c.id,st.list)})).filter(r=>r.s>0||r.b>0).sort((a,b)=>b.s-a.s).slice(0,3);
+  if(!rows.length)return '';
+  const pv=S.settings.privacy?'bal-hidden':'';
+  const tint=col=>col==='var(--bad)'?'rgba(255,107,129,.15)':col==='var(--warn)'?'rgba(255,180,84,.15)':'rgba(46,230,166,.15)';
+  const body=rows.map(r=>{
+    const u=r.b>0?(r.s/r.b)*100:(r.s>0?100:0);
+    const col=u>=100?'var(--bad)':u>=70?'var(--warn)':'var(--acc)';
+    const lbl=u>=100?(LANG==='ar'?'بلغت الحد':'Limit Reached'):u>=70?(LANG==='ar'?'مراقبة':'Watch'):(LANG==='ar'?'ضمن الحد':'On Track');
+    const ids=[r.c.id,...childrenOf(r.c.id).map(k=>k.id)];
+    const n=st.list.filter(x=>ids.includes(x.cat)).length;
+    return `<div class="trow" data-drill="${r.c.id}">
+      <div class="emoji" style="width:40px;height:40px;font-size:18px;background:${tint(col)}">${r.c.icon}</div>
+      <div class="tnm"><div class="cn">${cname(r.c)}</div><div class="cm">${n} ${LANG==='ar'?'معاملة':'transactions'}</div></div>
+      <div class="tmid"><div class="tamt"><b class="${pv}">${sar(r.s)}</b> <span>/ ${fmt(r.b)}</span></div><div class="cbar"><div style="width:${Math.min(100,u)}%;background:${col}"></div></div></div>
+      <div class="tright"><div class="tpct">${Math.round(u)}%</div><div class="chipstat" style="background:${tint(col)};color:${col}">● ${lbl}</div></div>
+    </div>`;}).join('');
+  return `<div class="sectit"><h2>${LANG==='ar'?'أهم الفئات':'TOP CATEGORIES'}</h2><a data-go="budget">${t('viewall')}</a></div><div class="tcard">${body}</div>`;
+}
+
+function dashView(){
+  const st=dashStats();
+  const recent=[...S.tx].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,4);
+  return `<div class="view">
+    <div class="hrow">${gaugeHTML(st)}${statusCardHTML(st)}</div>
+    ${spendChartHTML(st)}
+    ${alertCardHTML(st)}
+    ${topCats().length?topCatsHTML(st):emptyCats()}
+    <div class="sectit"><h2>${LANG==='ar'?'الأحدث':'RECENT'}</h2><a data-go="budget">${t('viewall')}</a></div>
+    ${recent.length?`<div class="tcard">${recent.map(txRow).join('')}</div>`:`<div class="empty"><div class="e">🧾</div><p>${t('noTxD')}</p></div>`}
+    <div class="note" style="text-align:center;margin-top:4px">${t('resetInfo')}</div>
   </div>`;
 }
 function catCard(c,list){
@@ -799,6 +1000,7 @@ function catCard(c,list){
       <div><div class="catname">${cname(c)}</div>
         <div class="catsub">${kids.length?kids.length+' '+t('subcategory').toLowerCase():t('category')}</div></div>
       <div class="catamt"><div class="a bal-h">${sar(s)}</div><div class="b">${t('ofbudget')} ${sar(b)}</div></div>
+      <button class="iconbtn" style="width:30px;height:30px;font-size:12px;margin-inline-start:6px;flex:0 0 auto" data-editcat="${c.id}">✏️</button>
     </div>
     <div class="mini"><div style="width:${pct}%;background:${col}"></div></div>
     <div class="pct"><span style="color:${col}"><span class="statusdot" style="background:${col}"></span>${t('status_'+st)}</span>
@@ -822,6 +1024,11 @@ function budgetView(){
   const list=txInPeriod();
   return `<div class="view">
     <div class="sectit"><h2>${t('budget')}</h2><a data-act="addcat">+ ${t('addCat')}</a></div>
+    <div style="display:flex;gap:8px;margin:-2px 0 14px">
+      <button class="btn btn-ghost" style="margin-top:0;flex:1;padding:11px;font-size:12.5px" data-act="xlupload">⬆️ ${LANG==='ar'?'رفع ميزانية Excel':'Upload Excel budget'}</button>
+      <button class="btn btn-ghost" style="margin-top:0;flex:1;padding:11px;font-size:12.5px" data-act="xltemplate">⬇️ ${LANG==='ar'?'تنزيل القالب':'Download template'}</button>
+    </div>
+    <input type="file" id="xlfile" accept=".xlsx,.xls,.csv" style="display:none">
     ${topCats().length?topCats().map(c=>catCard(c,list)).join(''):emptyCats()}
     <div class="sectit"><h2>${t('recent')}</h2></div>
     <div class="searchbar"><input id="search" placeholder="${t('search')}" value="${searchQ}"></div>
@@ -870,7 +1077,8 @@ function subCard(k,list){
   return `<div class="catcard" data-drillsub="${k.id}">
     <div class="catrow"><div class="emoji">${k.icon}</div>
       <div><div class="catname">${cname(k)}</div></div>
-      <div class="catamt"><div class="a bal-h">${sar(s)}</div><div class="b">${t('ofbudget')} ${sar(b)}</div></div></div>
+      <div class="catamt"><div class="a bal-h">${sar(s)}</div><div class="b">${t('ofbudget')} ${sar(b)}</div></div>
+      <button class="iconbtn" style="width:30px;height:30px;font-size:12px;margin-inline-start:6px;flex:0 0 auto" data-editcat="${k.id}">✏️</button></div>
     <div class="mini"><div style="width:${pct}%;background:${col}"></div></div>
     <div class="pct"><span style="color:${col}">${t('status_'+st)}</span><span style="color:var(--ink2)">${b>0?Math.round(s/b*100):0}%</span></div>
   </div>`;
@@ -1000,7 +1208,8 @@ create policy "u" on sms_inbox for update to anon using(true);</div>
     <button class="btn btn-ghost" data-act="signout">🔓 ${LANG==='ar'?'تسجيل الخروج':'Sign out'}</button>
 
     <div class="sectit"><h2>${t('export')}</h2></div>
-    <button class="btn btn-ghost" data-act="export">⬇︎ ${t('export')} (CSV)</button>
+    <button class="btn btn-ghost" data-act="export">⬇︎ ${LANG==='ar'?'تصدير العمليات':'Export transactions'} (CSV)</button>
+    <button class="btn btn-ghost" data-act="exportbudget" style="margin-top:10px">⬇︎ ${LANG==='ar'?'الميزانية مقابل الفعلي':'Budget vs actual'} (CSV)</button>
 
     <div class="sectit"><h2>${LANG==='ar'?'إدارة البيانات':'Data Management'}</h2></div>
     <button class="btn btn-ghost" data-act="clearcats">🗑️ ${LANG==='ar'?'حذف كل الفئات (البيانات التجريبية)':'Clear all categories (sample data)'}</button>
@@ -1008,7 +1217,7 @@ create policy "u" on sms_inbox for update to anon using(true);</div>
     <button class="btn btn-bad" data-act="resetall" style="margin-top:10px">⚠️ ${LANG==='ar'?'إعادة ضبط كاملة (يبقى اتصال Supabase)':'Full reset (keeps Supabase connection)'}</button>
     <div class="note">${LANG==='ar'?'إعادة الضبط تحذف الفئات والعمليات والدخل، لكنها تُبقي إعدادات المزامنة. لا يمكن التراجع.':'Reset clears categories, transactions, and income, but keeps your sync settings. Cannot be undone.'}</div>
 
-    <div class="note" style="text-align:center;margin-top:24px">Mizan · ${t('resetInfo')}</div>
+    <div class="note" style="text-align:center;margin-top:24px">Awzin · ${t('resetInfo')}</div>
   </div>`;
 }
 function toggleRow(ic,title,desc,on,act,arrow){
@@ -1025,14 +1234,15 @@ function toggleRow(ic,title,desc,on,act,arrow){
 function nav(){
   const uncat=S.tx.filter(x=>!x.cat||x.cat==='uncat').length;
   const items=[['dash',t('dash'),'M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
-    ['budget',t('budget'),'M4 6h16M4 12h16M4 18h10'],
     ['reports',t('reports'),'M4 19V5m6 14V9m6 10v-6m4 6V7'],
+    ['budget',LANG==='ar'?'الميزانيات':'Budgets','M3 7h18v12H3zM3 7l3-3h12l3 3'],
     ['settings',t('settings'),'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M3 12h2m14 0h2M12 3v2m0 14v2']];
-  return `<div class="nav">${items.map(([k,l,p])=>`<button class="navb ${view===k?'on':''}" data-go="${k}">
+  const btn=([k,l,p])=>`<button class="navb ${view===k?'on':''}" data-go="${k}">
     <svg viewBox="0 0 24 24"><path d="${p}"/></svg>${l}
-    ${k==='budget'&&uncat>0?`<span class="navbadge">${uncat}</span>`:''}</button>`).join('')}</div>`;
+    ${k==='budget'&&uncat>0?`<span class="navbadge">${uncat}</span>`:''}</button>`;
+  return `<div class="nav">${btn(items[0])}${btn(items[1])}<button class="nfab" data-act="addexpense">+</button>${btn(items[2])}${btn(items[3])}</div>`;
 }
-function fab(){ return `<button class="fab" data-act="addexpense">+</button>`; }
+function fab(){ return ''; }
 
 function periodLabel(){const m={month:t('thisMonth'),last:t('lastMonth'),ytd:t('ytd'),custom:t('custom')};return m[period];}
 function fmtDate(d){const dt=new Date(d);
@@ -1113,8 +1323,13 @@ function expenseSheet(prefill={}){
         S.income.push({id:uid(),amount:p.amount,source:p.from||p.vendor||'Deposit',date:p.date,kind:p.kind});
         save();closeSheet();toast(LANG==='ar'?'تمت إضافة الدخل':'Income added');render();
       }else{
-        closeSheet();
-        expenseSheet({amount:p.amount,vendor:p.vendor,card:p.card,date:p.date,cat:sug||'uncat'});
+        // Save the expense directly — no second form
+        const cat = sug || 'uncat';
+        if(p.vendor && cat && cat!=='uncat') S.vendorMap[p.vendor.toLowerCase()]=cat;
+        S.tx.push({ id:uid(), amount:p.amount, vendor:p.vendor||'', date:p.date,
+          cat:cat, card:p.card||'', note:'', kind:p.kind, currency:p.currency,
+          to:p.to||'', from:p.from||'', raw:p.raw, source:'manual-sms' });
+        save();closeSheet();toast(t('addedTx'));render();
       }
     };
   };
@@ -1139,6 +1354,8 @@ function catSelectOptions(sel){
   let o=`<option value="uncat" ${sel==='uncat'||!sel?'selected':''}>❓ ${t('uncategorized')}</option>`;
   topCats().forEach(c=>{const kids=childrenOf(c.id);
     if(kids.length){o+=`<optgroup label="${cname(c)}">`;
+      // Parent itself is independently selectable (general spend not tied to a subcategory)
+      o+=`<option value="${c.id}" ${sel===c.id?'selected':''}>${c.icon} ${cname(c)} (${LANG==='ar'?'عام':'general'})</option>`;
       kids.forEach(k=>o+=`<option value="${k.id}" ${sel===k.id?'selected':''}>${k.icon} ${cname(k)}</option>`);
       o+=`</optgroup>`;}
     else o+=`<option value="${c.id}" ${sel===c.id?'selected':''}>${c.icon} ${cname(c)}</option>`;});
@@ -1171,9 +1388,30 @@ function catSheet(editId){
     save();closeSheet();toast(t('savedCat'));render();
   };
   if(editId)document.getElementById('delcat').onclick=()=>{
-    S.cats=S.cats.filter(x=>x.id!==editId&&x.parent!==editId);
-    S.tx.forEach(x=>{if(x.cat===editId)x.cat='uncat';});
-    save();closeSheet();drillCat=null;render();
+    const kidIds=childrenOf(editId).map(k=>k.id);
+    const ids=[editId,...kidIds];
+    const affected=S.tx.filter(x=>ids.includes(x.cat));
+    const n=affected.length, m=kidIds.length;
+    const c=catById(editId);
+    closeSheet();
+    const msg = LANG==='ar'
+      ? `${n} معاملة مرتبطة بهذه الفئة${m?` وفئاتها الفرعية (${m})`:''}. ستصبح غير مصنّفة. لا يمكن التراجع.`
+      : `${n} transaction${n===1?' is':'s are'} mapped to this category${m?` and its ${m} subcategor${m===1?'y':'ies'}`:''}. They will become Uncategorized. This cannot be undone.`;
+    confirmSheet((LANG==='ar'?'حذف ':'Delete ')+(c?cname(c):'')+'?', msg, async ()=>{
+      S.cats=S.cats.filter(x=>x.id!==editId&&x.parent!==editId);
+      affected.forEach(x=>x.cat='uncat');
+      Object.keys(S.vendorMap||{}).forEach(v=>{ if(ids.includes(S.vendorMap[v])) delete S.vendorMap[v]; });
+      // Clear the category on synced transactions in the cloud so other devices match
+      if(SB.enabled&&SB.url&&SB.anonKey){
+        for(const x of affected){ if(x.sb_tx_id){ try{
+          await fetch(`${SB.url}/rest/v1/transactions?id=eq.${x.sb_tx_id}`,{method:'PATCH',
+            headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,'Content-Type':'application/json','Prefer':'return=minimal'},
+            body:JSON.stringify({category_id:null})});
+        }catch(e){} } }
+      }
+      drillCat=null; save(); render();
+      toast(LANG==='ar'?'تم حذف الفئة':'Category deleted');
+    });
   };
 }
 
@@ -1213,6 +1451,36 @@ function incomeSheet(){
   };
 }
 
+function alertItems(){
+  const st=dashStats();const items=[];
+  if(st.tb>0&&st.sp>st.tb)items.push({ic:'🔴',t:LANG==='ar'?'تجاوزت الميزانية':'Over budget',d:(LANG==='ar'?'تجاوزت بمقدار ':'Over by ')+sar(st.sp-st.tb)});
+  else if(st.tb>0&&st.isCur&&st.pace>=1.15)items.push({ic:'⚠️',t:LANG==='ar'?'وتيرة صرف مرتفعة':'Spending fast',d:st.pace.toFixed(1)+'× '+(LANG==='ar'?'أسرع من المخطط':'faster than planned')});
+  topCats().forEach(c=>{const b=catBudget(c),s=catSpent(c.id,st.list);if(b>0){const u=s/b*100;
+    if(u>=100)items.push({ic:'🚨',t:cname(c),d:LANG==='ar'?'بلغت حد الميزانية':'Budget limit reached'});
+    else if(u>=70)items.push({ic:'🟡',t:cname(c),d:Math.round(u)+'% '+(LANG==='ar'?'من الميزانية مستخدم':'of budget used')});}});
+  const un=S.tx.filter(x=>!x.cat||x.cat==='uncat').length;
+  if(un>0)items.push({ic:'📬',t:LANG==='ar'?'بانتظار التصنيف':'Awaiting categorization',d:un+' '+(LANG==='ar'?'معاملة':'transaction(s)')});
+  return items;
+}
+function notifSheet(){
+  const items=alertItems();
+  openSheet(`<h3>🔔 ${LANG==='ar'?'التنبيهات':'Notifications'}</h3>
+    ${items.length?items.map(i=>`<div class="insight"><div class="ic" style="background:var(--card2)">${i.ic}</div><div><div class="t">${i.t}</div><div class="d">${i.d}</div></div></div>`).join(''):`<div class="empty"><div class="e">✅</div><p>${LANG==='ar'?'لا توجد تنبيهات — كل شيء على ما يرام':'No alerts — everything looks good'}</p></div>`}`);
+}
+function periodSheet(){
+  openSheet(`<h3>📅 ${LANG==='ar'?'الفترة':'Period'}</h3>
+    ${[['month',t('thisMonth')],['last',t('lastMonth')],['ytd',t('ytd')]].map(([k,l])=>`<button class="btn ${period===k?'btn-pri':'btn-ghost'}" data-p="${k}" style="margin-top:10px">${l}</button>`).join('')}
+    <button class="btn ${period==='custom'?'btn-pri':'btn-ghost'}" id="pcust" style="margin-top:10px">${t('custom')}</button>
+    <div id="custbox" class="${period==='custom'?'':'hidden'}">
+      <div class="row2"><div><label>${LANG==='ar'?'من':'From'}</label><input type="date" id="pc0" value="${customRange?customRange[0]:''}"></div>
+      <div><label>${LANG==='ar'?'إلى':'To'}</label><input type="date" id="pc1" value="${customRange?customRange[1]:''}"></div></div>
+      <button class="btn btn-pri" id="pcapply">${LANG==='ar'?'تطبيق':'Apply'}</button>
+    </div>`);
+  document.querySelectorAll('[data-p]').forEach(b=>b.onclick=()=>{period=b.dataset.p;chartMode=null;closeSheet();render();});
+  document.getElementById('pcust').onclick=()=>document.getElementById('custbox').classList.toggle('hidden');
+  document.getElementById('pcapply').onclick=()=>{const a=document.getElementById('pc0').value,b2=document.getElementById('pc1').value;
+    if(a&&b2){customRange=[a,b2];period='custom';chartMode=null;closeSheet();render();}};
+}
 function confirmSheet(title,desc,onYes){
   openSheet(`<h3>${title}</h3>
     <div class="d" style="color:var(--ink2);font-size:14px;line-height:1.5;margin-bottom:8px">${desc}</div>
@@ -1231,11 +1499,105 @@ async function purgeSupabaseTx(){
   }catch(e){ console.warn('purge error',e); }
 }
 
+/* ===== Excel budget upload ===== */
+let XLSXP=null;
+function loadXLSX(){
+  if(window.XLSX) return Promise.resolve(window.XLSX);
+  if(XLSXP) return XLSXP;
+  XLSXP=new Promise((res,rej)=>{const sc=document.createElement('script');
+    sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+    sc.onload=()=>res(window.XLSX);
+    sc.onerror=()=>{XLSXP=null;rej(new Error(LANG==='ar'?'تعذر تحميل مكتبة Excel — تحقق من الاتصال':'Could not load Excel library — check connection'));};
+    document.head.appendChild(sc);});
+  return XLSXP;
+}
+// Pure row processor: finds or creates categories, sets budgets. Returns counts.
+function processBudgetRows(rows){
+  const norm=s=>String(s??'').trim();
+  const low=s=>norm(s).toLowerCase();
+  const pick=(r,keys)=>{for(const k of keys){if(r[k]!==undefined&&norm(r[k])!=='')return norm(r[k]);}return '';};
+  const findCat=(name,parentId)=>{const nm=low(name);if(!nm)return null;
+    return S.cats.find(c=>(c.parent||null)===(parentId||null)&&(low(c.name.en)===nm||low(c.name.ar)===nm));};
+  let created=0,updated=0,skipped=0;
+  for(const r of rows){
+    const mainEn=pick(r,['Main Category (EN)','Main Category','Category (EN)','Category','main_en']);
+    const mainAr=pick(r,['Main Category (AR)','الفئة الرئيسية','main_ar']);
+    const subEn=pick(r,['Subcategory (EN)','Subcategory','sub_en']);
+    const subAr=pick(r,['Subcategory (AR)','الفئة الفرعية','sub_ar']);
+    const icon=pick(r,['Icon','أيقونة','icon']);
+    const budget=parseFloat(pick(r,['Budget (SAR)','Budget','الميزانية','budget']).replace(/,/g,''))||0;
+    if(!mainEn&&!mainAr){skipped++;continue;}
+    let main=findCat(mainEn,null)||findCat(mainAr,null);
+    let mainCreated=false;
+    if(!main){
+      main={id:uid(),name:{en:mainEn||mainAr,ar:mainAr||mainEn},icon:(!subEn&&!subAr&&icon)?icon:'📁',budget:0,parent:null};
+      S.cats.push(main);created++;mainCreated=true;
+    }
+    if(subEn||subAr){
+      let sub=findCat(subEn,main.id)||findCat(subAr,main.id);
+      if(!sub){S.cats.push({id:uid(),name:{en:subEn||subAr,ar:subAr||subEn},icon:icon||'📁',budget,parent:main.id});created++;}
+      else{sub.budget=budget;if(icon)sub.icon=icon;if(subEn)sub.name.en=subEn;if(subAr)sub.name.ar=subAr;updated++;}
+    }else{
+      main.budget=budget;
+      if(icon)main.icon=icon;
+      if(mainEn)main.name.en=mainEn; if(mainAr)main.name.ar=mainAr;
+      if(!mainCreated)updated++;
+    }
+  }
+  return {created,updated,skipped};
+}
+async function handleBudgetUpload(file){
+  try{
+    const XLSX=await loadXLSX();
+    const buf=await file.arrayBuffer();
+    const wb=XLSX.read(buf,{type:'array'});
+    const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
+    if(!rows.length){toast(LANG==='ar'?'الملف فارغ':'File is empty');return;}
+    const res=processBudgetRows(rows);
+    save();render();
+    toast(`✅ ${res.created} ${LANG==='ar'?'أُضيفت':'created'} · ${res.updated} ${LANG==='ar'?'حُدّثت':'updated'}${res.skipped?` · ${res.skipped} ${LANG==='ar'?'تُخطيت':'skipped'}`:''}`);
+  }catch(e){toast('❌ '+(e&&e.message?e.message:'Upload failed'));}
+}
+async function downloadTemplate(){
+  try{
+    const XLSX=await loadXLSX();
+    const data=[
+      {'Main Category (EN)':'Groceries','Main Category (AR)':'البقالة','Subcategory (EN)':'Home groceries','Subcategory (AR)':'بقالة المنزل','Icon':'🛒','Budget (SAR)':1500},
+      {'Main Category (EN)':'Groceries','Main Category (AR)':'البقالة','Subcategory (EN)':'Personal groceries','Subcategory (AR)':'بقالة شخصية','Icon':'🧺','Budget (SAR)':500},
+      {'Main Category (EN)':'Bills','Main Category (AR)':'الفواتير','Subcategory (EN)':'','Subcategory (AR)':'','Icon':'🧾','Budget (SAR)':800},
+    ];
+    const ws=XLSX.utils.json_to_sheet(data);
+    const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Budget');
+    XLSX.writeFile(wb,'awzin-budget-template.xlsx');
+  }catch(e){toast('❌ '+(e&&e.message?e.message:'Failed'));}
+}
+/* ===== Budget vs actual export ===== */
+function exportBudgetCSV(){
+  const list=txInPeriod(); const [ps,pe]=periodRange();
+  const d=dt=>dt.toISOString().slice(0,10);
+  const q=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
+  let csv='\uFEFFPeriod Start,Period End,Level,Main Category,Subcategory,Icon,Budget (SAR),Actual Spend (SAR),Remaining (SAR),% Used,Transactions,Status\n';
+  topCats().forEach(c=>{
+    const kids=childrenOf(c.id);
+    const b=catBudget(c), s=catSpent(c.id,list);
+    const ids=[c.id,...kids.map(k=>k.id)];
+    const n=list.filter(x=>ids.includes(x.cat)).length;
+    csv+=[d(ps),d(pe),'Main',q(cname(c)),'',q(c.icon),b,s.toFixed(2),(b-s).toFixed(2),b>0?Math.round(s/b*100)+'%':'',n,statusOf(s,b)].join(',')+'\n';
+    kids.forEach(k=>{
+      const kb=k.budget||0, ks=catSpent(k.id,list);
+      const kn=list.filter(x=>x.cat===k.id).length;
+      csv+=[d(ps),d(pe),'Sub',q(cname(c)),q(cname(k)),q(k.icon),kb,ks.toFixed(2),(kb-ks).toFixed(2),kb>0?Math.round(ks/kb*100)+'%':'',kn,statusOf(ks,kb)].join(',')+'\n';
+    });
+  });
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download='awzin-budget-vs-actual.csv';a.click();URL.revokeObjectURL(url);
+  toast(t('exportData'));
+}
 function exportCSV(){
-  let csv='Date,Vendor,Category,Amount,Card,Notes\n';
+  let csv='\uFEFFDate,Vendor,Category,Amount,Card,Notes\n';
   S.tx.forEach(x=>{const c=catById(x.cat);csv+=`${x.date},"${x.vendor||''}","${c?cname(c):'Uncategorized'}",${x.amount},"${x.card||''}","${x.note||''}"\n`;});
   const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');a.href=url;a.download='mizan-transactions.csv';a.click();URL.revokeObjectURL(url);
+  const a=document.createElement('a');a.href=url;a.download='awzin-transactions.csv';a.click();URL.revokeObjectURL(url);
   toast(t('exportData'));
 }
 
@@ -1258,6 +1620,11 @@ function bind(){
     if(a==='importsms')expenseSheet();
     if(a==='addincome')incomeSheet();
     if(a==='export')exportCSV();
+    if(a==='exportbudget')exportBudgetCSV();
+    if(a==='xlupload'){const f=document.getElementById('xlfile');if(f){f.value='';f.click();}}
+    if(a==='xltemplate')downloadTemplate();
+    if(a==='notifs')notifSheet();
+    if(a==='periodpick')periodSheet();
     if(a==='clearcats'){ confirmSheet(
       LANG==='ar'?'حذف كل الفئات؟':'Clear all categories?',
       LANG==='ar'?'سيتم حذف كل الفئات التجريبية. عملياتك تبقى لكنها ستصبح غير مصنّفة.':'All sample categories will be removed. Your transactions stay but become uncategorized.',
@@ -1276,6 +1643,10 @@ function bind(){
     if(a==='togprivacy'){S.settings.privacy=!S.settings.privacy;save();render();}
     if(a==='toglang'){LANG=LANG==='ar'?'en':'ar';localStorage.setItem('mizan_lang',LANG);render();}
   });
+  const cm=document.getElementById('chartmode');
+  if(cm)cm.onchange=()=>{chartMode=cm.value;render();};
+  const xf=document.getElementById('xlfile');
+  if(xf)xf.onchange=()=>{ if(xf.files&&xf.files[0]) handleBudgetUpload(xf.files[0]); };
   // Supabase settings binds
   const sbSave=document.getElementById('sb_save');
   if(sbSave)sbSave.onclick=async()=>{
