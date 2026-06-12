@@ -141,17 +141,23 @@ input,select,textarea{width:100%;background:var(--card);border:1px solid var(--l
   border-radius:12px;padding:13px 14px;color:var(--ink);font-family:inherit;font-size:15px;outline:none}
 input:focus,select:focus,textarea:focus{border-color:var(--acc2)}
 textarea{resize:vertical;min-height:70px}
-.row2{display:flex;gap:10px}.row2>div{flex:1}
+.row2{display:flex;gap:10px}.row2>div{flex:1;min-width:0}
+.row2 select,.row2 input{width:100%;min-width:0;text-overflow:ellipsis;overflow:hidden}
 .btn{width:100%;padding:15px;border-radius:14px;border:none;font-family:inherit;font-weight:700;
   font-size:15px;cursor:pointer;margin-top:18px;transition:.15s}
 .btn:active{transform:scale(.98)}
 .btn-pri{background:linear-gradient(135deg,var(--acc),var(--acc2));color:#06281d}
 .btn-ghost{background:var(--card);color:var(--ink);border:1px solid var(--line)}
 .btn-bad{background:rgba(255,107,129,.14);color:var(--bad);border:1px solid rgba(255,107,129,.3)}
-.emojipick{display:flex;flex-wrap:wrap;gap:7px;margin-top:6px}
-.emojipick span{width:42px;height:42px;border-radius:11px;background:var(--card);border:1px solid var(--line);
-  display:grid;place-items:center;font-size:20px;cursor:pointer}
-.emojipick span.on{border-color:var(--acc);background:var(--card2)}
+.iconpicker{display:flex;flex-wrap:wrap;gap:7px;border:1px solid var(--line);border-radius:12px;
+  padding:10px;max-height:230px;overflow-y:auto;margin-top:6px}
+.iconpicker .grp{flex:1 0 100%;font-size:10px;font-weight:800;color:var(--ink3);letter-spacing:.5px;
+  text-transform:uppercase;margin:8px 0 0}
+.iconpicker .grp:first-child{margin-top:0}
+.iconpicker span{width:40px;height:40px;border-radius:11px;background:var(--card);border:1px solid var(--line);
+  display:flex;align-items:center;justify-content:center;font-size:19px;cursor:pointer;flex:0 0 auto}
+.iconpicker span.on{border-color:var(--acc);background:var(--card2)}
+.iconpicker span.hide,.iconpicker .grp.hide{display:none}
 
 /* segmented */
 .seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;margin-top:6px}
@@ -1268,7 +1274,56 @@ function closeSheet(){const s=document.getElementById('scrim');if(s)s.remove();}
 function toast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;
   document.body.appendChild(el);setTimeout(()=>el.remove(),1900);}
 
-const EMOJIS=['🍔','🛒','🍽️','☕','🧾','📱','⚡','💧','🚗','⛽','🛍️','🏠','💊','🎓','✈️','🎬','💪','🐱','🎁','💰','📚','👕','🔧','🌐','💳','🏦'];
+const ICON_GROUPS=[
+ {en:'Food & Dining',ar:'الطعام والمطاعم',icons:[
+   ['🍔','Fast food','وجبات سريعة'],['🛒','Groceries','بقالة'],['🍽️','Restaurants','مطاعم'],
+   ['☕','Coffee','قهوة'],['🍕','Pizza','بيتزا'],['🥗','Healthy food','أكل صحي'],
+   ['🍰','Bakery & desserts','مخبوزات وحلويات'],['🥤','Drinks','مشروبات']]},
+ {en:'Home & Bills',ar:'المنزل والفواتير',icons:[
+   ['🏠','Rent','إيجار'],['🧾','Bills','فواتير'],['⚡','Electricity','كهرباء'],['💧','Water','مياه'],
+   ['🔥','Gas','غاز'],['🌐','Internet','إنترنت'],['📱','Phone','جوال'],['📺','Subscriptions','اشتراكات'],
+   ['🛋️','Furniture','أثاث'],['🪴','Garden','حديقة'],['🧹','Cleaning & maid','تنظيف وخادمة'],
+   ['🔧','Maintenance','صيانة'],['🛡️','Insurance','تأمين']]},
+ {en:'Transport',ar:'المواصلات',icons:[
+   ['🚗','Car','سيارة'],['⛽','Fuel','وقود'],['🛞','Car service','صيانة السيارة'],
+   ['🚕','Taxi & rideshare','تكسي'],['🅿️','Parking','مواقف'],['🚌','Public transport','نقل عام'],
+   ['🚲','Bike','دراجة'],['✈️','Flights','طيران'],['🏨','Hotels','فنادق']]},
+ {en:'Shopping',ar:'التسوق',icons:[
+   ['🛍️','Shopping','تسوق'],['👕','Clothes','ملابس'],['👗',"Women's wear",'ملابس نسائية'],
+   ['👟','Shoes','أحذية'],['🧣','Accessories','إكسسوارات'],['💄','Beauty','مكياج'],
+   ['💇','Salon & haircut','صالون وحلاقة'],['🧴','Personal care','عناية شخصية'],
+   ['🖥️','Electronics','إلكترونيات'],['🎁','Gifts','هدايا']]},
+ {en:'Health',ar:'الصحة',icons:[
+   ['💊','Pharmacy','صيدلية'],['🩺','Medical','طبي'],['🦷','Dental','أسنان'],
+   ['👓','Optical','نظارات'],['🏋️','Gym','نادي رياضي'],['🧘','Wellness','استجمام']]},
+ {en:'Family & Kids',ar:'الأسرة والأطفال',icons:[
+   ['👶','Baby','طفل'],['🧸','Toys','ألعاب أطفال'],['🎒','School supplies','مستلزمات مدرسية'],
+   ['🎓','Education','تعليم'],['📖','Books','كتب'],['🐱','Pets','حيوانات أليفة'],['🐶','Dog','كلب']]},
+ {en:'Finance',ar:'المالية',icons:[
+   ['💰','Savings','مدخرات'],['💳','Card payment','بطاقة'],['🏦','Bank','بنك'],
+   ['📈','Investments','استثمار'],['🕌','Charity & zakat','صدقة وزكاة']]},
+ {en:'Entertainment',ar:'الترفيه',icons:[
+   ['🎬','Movies & streaming','أفلام واشتراكات'],['🎮','Gaming','ألعاب فيديو'],
+   ['🎵','Music','موسيقى'],['🎉','Events','فعاليات'],['🎂','Celebrations','احتفالات']]},
+ {en:'Work & Other',ar:'العمل وأخرى',icons:[
+   ['💼','Work expenses','مصاريف عمل'],['💪','Fitness','لياقة'],['❓','Other','أخرى']]},
+];
+function iconInGroups(icon){return ICON_GROUPS.some(g=>g.icons.some(i=>i[0]===icon));}
+function renderIconPicker(selected){
+  const customVal = (selected&&!iconInGroups(selected))?selected:'';
+  const body=ICON_GROUPS.map(g=>{
+    const gname=LANG==='ar'?g.ar:g.en;
+    const items=g.icons.map(([e,en,ar])=>{
+      const kw=(en+' '+ar+' '+g.en+' '+g.ar).toLowerCase();
+      return `<span class="${selected===e?'on':''}" data-e="${e}" data-kw="${kw}" title="${LANG==='ar'?ar:en}">${e}</span>`;
+    }).join('');
+    return `<div class="grp">${gname}</div>${items}`;
+  }).join('');
+  return `<input id="iconsearch" placeholder="${LANG==='ar'?'🔍 بحث عن أيقونة…':'🔍 Search icons…'}">
+    <div class="iconpicker" id="emo">${body}</div>
+    <input id="customicon" maxlength="8" value="${customVal}" style="margin-top:8px;text-align:center;font-size:20px"
+      placeholder="${LANG==='ar'?'➕ أو اكتب أي إيموجي آخر':'➕ Or type any other emoji'}">`;
+}
 
 function expenseSheet(prefill={}){
   const catOpts=catSelectOptions(prefill.cat);
@@ -1377,7 +1432,7 @@ function catSheet(editId){
     <label>${t('catName')} (EN)</label><input id="cn_en" value="${c?c.name.en:''}" placeholder="Food">
     <label>${t('catName')} (عربي)</label><input id="cn_ar" value="${c?c.name.ar:''}" placeholder="الطعام" dir="rtl">
     <label>${t('chooseIcon')}</label>
-    <div class="emojipick" id="emo">${EMOJIS.map(e=>`<span class="${c&&c.icon===e?'on':''}" data-e="${e}">${e}</span>`).join('')}</div>
+    ${renderIconPicker(c?c.icon:'🍔')}
     <label>${t('parent')}</label>
     <select id="parent"><option value="">${t('none')}</option>
       ${parents.map(p=>`<option value="${p.id}" ${c&&c.parent===p.id?'selected':''}>${p.icon} ${cname(p)}</option>`).join('')}</select>
@@ -1385,8 +1440,26 @@ function catSheet(editId){
     <button class="btn btn-pri" id="savecat">${t('save')}</button>
     ${editId?`<button class="btn btn-bad" id="delcat">${t('delete')}</button>`:''}`);
   let picked=c?c.icon:'🍔';
-  document.querySelectorAll('#emo span').forEach(s=>s.onclick=()=>{
-    document.querySelectorAll('#emo span').forEach(x=>x.classList.remove('on'));s.classList.add('on');picked=s.dataset.e;});
+  document.querySelectorAll('#emo span[data-e]').forEach(s=>s.onclick=()=>{
+    document.querySelectorAll('#emo span[data-e]').forEach(x=>x.classList.remove('on'));
+    s.classList.add('on');picked=s.dataset.e;
+    const ci=document.getElementById('customicon');if(ci)ci.value='';
+  });
+  const ci=document.getElementById('customicon');
+  if(ci)ci.oninput=()=>{
+    const v=ci.value.trim();
+    if(v){picked=v;document.querySelectorAll('#emo span[data-e]').forEach(x=>x.classList.remove('on'));}
+  };
+  const isr=document.getElementById('iconsearch');
+  if(isr)isr.oninput=()=>{
+    const q=isr.value.trim().toLowerCase();
+    document.querySelectorAll('#emo span[data-e]').forEach(s=>s.classList.toggle('hide',!!q&&!s.dataset.kw.includes(q)));
+    document.querySelectorAll('#emo .grp').forEach(g=>{
+      let el=g.nextElementSibling,any=false;
+      while(el&&!el.classList.contains('grp')){if(!el.classList.contains('hide'))any=true;el=el.nextElementSibling;}
+      g.classList.toggle('hide',!!q&&!any);
+    });
+  };
   document.getElementById('savecat').onclick=()=>{
     const en=document.getElementById('cn_en').value.trim(),ar=document.getElementById('cn_ar').value.trim();
     if(!en&&!ar){toast(t('catName'));return;}
