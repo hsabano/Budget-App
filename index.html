@@ -697,14 +697,14 @@ async function pollSupabase(){
       if(row.flow==='in'){
         S.income.push({ id:uid(), sb_tx_id:row.id, amount:Number(row.amount),
           source:row.counterparty_from||row.vendor||row.label||(LANG==='ar'?'إيداع':'Deposit'),
-          date:row.tx_date||new Date().toISOString().slice(0,10), kind:row.kind, card:row.card||'', raw:row.raw });
+          date:row.tx_date||new Date().toISOString().slice(0,10), kind:row.kind, card:row.card||'', raw:row.raw, time:row.tx_time||'' });
       }else{
         const xferVendor=(row.kind==='transfer_out'&&row.counterparty_to)?((LANG==='ar'?'حوالة إلى ':'Transfer to ')+row.counterparty_to):'';
         const vend=row.vendor||xferVendor||row.label||'';
         const sug = suggestCat(vend);
         S.tx.push({ id:uid(), sb_tx_id:row.id, amount:Number(row.amount), vendor:vend,
           date:row.tx_date||new Date().toISOString().slice(0,10), cat:row.category_id||row.category||sug||'uncat',
-          card:row.card||'', note:row.note||'', kind:row.kind, currency:row.currency,
+          card:row.card||'', note:row.note||'', kind:row.kind, currency:row.currency, time:row.tx_time||'',
           to:row.counterparty_to||'', from:row.counterparty_from||'', raw:row.raw, source:'ai' });
       }
       added++;
@@ -978,7 +978,7 @@ function topCatsHTML(st){
 
 function dashView(){
   const st=dashStats();
-  const recent=[...S.tx].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,4);
+  const recent=[...S.tx].sort((a,b)=>txStamp(b)-txStamp(a)).slice(0,4);
   return `<div class="view">
     <div class="hrow">${gaugeHTML(st)}${statusCardHTML(st)}</div>
     ${spendChartHTML(st)}
@@ -1014,7 +1014,7 @@ function txRow(x){
   return `<div class="tx" data-tx="${x.id}">
     <div class="emoji" style="width:40px;height:40px;font-size:18px">${isUncat?'❓':(c?c.icon:'💸')}</div>
     <div><div class="txname">${x.vendor||t('expenseV')}${isUncat?`<span class="uncat">${t('uncategorized')}</span>`:''}</div>
-      <div class="txmeta">${x.card||''} · ${fmtDate(x.date)}</div></div>
+      <div class="txmeta">${x.card||''} · ${fmtDate(x.date)}${x.time?' · '+x.time:''}</div></div>
     <div class="txamt bal-h">−${sar(x.amount)}</div>
   </div>`;
 }
@@ -1036,7 +1036,7 @@ function budgetView(){
   </div>`;
 }
 function allTxList(){
-  let list=[...S.tx].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  let list=[...S.tx].sort((a,b)=>txStamp(b)-txStamp(a));
   if(searchQ){const q=searchQ.toLowerCase();list=list.filter(x=>{const c=catById(x.cat);
     return (x.vendor||'').toLowerCase().includes(q)||(c&&cname(c).toLowerCase().includes(q))||
     String(x.amount).includes(q)||x.date.includes(q);});}
@@ -1051,7 +1051,7 @@ function drillView(){
   const kids=childrenOf(c.id);
   const b=catBudget(c),s=catSpent(c.id,list),rem=b-s;
   const ids=[c.id,...kids.map(k=>k.id)];
-  const txs=list.filter(x=>ids.includes(x.cat)).sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const txs=list.filter(x=>ids.includes(x.cat)).sort((a,b)=>txStamp(b)-txStamp(a));
   return `<div class="view">
     <div class="crumb"><span data-go="budget">${t('budget')}</span> › <b>${c.icon} ${cname(c)}</b>
       <button class="iconbtn" style="margin-inline-start:auto;width:32px;height:32px;font-size:13px" data-editcat="${c.id}">✏️</button></div>
@@ -1245,6 +1245,14 @@ function nav(){
 function fab(){ return ''; }
 
 function periodLabel(){const m={month:t('thisMonth'),last:t('lastMonth'),ytd:t('ytd'),custom:t('custom')};return m[period];}
+// Sortable timestamp: combines date with time-of-day when known, so same-day
+// transactions order correctly (newest first) instead of by insertion order.
+function txStamp(x){
+  const d=x.date||'1970-01-01';
+  const tm=(x.time&&/^\d{1,2}:\d{2}/.test(x.time))?x.time:'00:00';
+  const t=new Date(`${d}T${tm.length===4?'0'+tm:tm}:00`).getTime();
+  return isNaN(t)?new Date(d).getTime():t;
+}
 function fmtDate(d){const dt=new Date(d);
   if(S.settings.hijri){try{return new Intl.DateTimeFormat(LANG==='ar'?'ar-SA-u-ca-islamic':'en-US-u-ca-islamic',{day:'numeric',month:'short'}).format(dt);}catch(e){}}
   return new Intl.DateTimeFormat(LANG==='ar'?'ar-SA':'en-US',{day:'numeric',month:'short'}).format(dt);}
