@@ -1435,7 +1435,15 @@ function txSheet(id){
     if(x.vendor&&x.cat&&x.cat!=='uncat')S.vendorMap[x.vendor.toLowerCase()]=x.cat;
     save();closeSheet();toast(t('savedCat'));render();
   };
-  document.getElementById('e_del').onclick=()=>{S.tx=S.tx.filter(t=>t.id!==id);save();closeSheet();toast(t('deletedTx'));render();};
+  document.getElementById('e_del').onclick=async()=>{
+    const tx=S.tx.find(t=>t.id===id);
+    S.tx=S.tx.filter(t=>t.id!==id);save();closeSheet();toast(t('deletedTx'));render();
+    if(tx&&tx.sb_tx_id&&SB.enabled&&SB.url&&SB.anonKey){
+      try{ await fetch(`${SB.url}/rest/v1/transactions?id=eq.${tx.sb_tx_id}`,{method:'DELETE',
+        headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,'Prefer':'return=minimal'}}); }
+      catch(e){ console.warn('cloud delete failed',e); }
+    }
+  };
 }
 
 function incomeSheet(){
