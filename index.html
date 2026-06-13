@@ -382,13 +382,28 @@ function saveLocal(){ localStorage.setItem('mizan_data',JSON.stringify(S)); }
 
 /* ===== Cloud persistence (categories, budgets, income, vendor map) =====
    Supabase is the source of truth. Local storage is a fast cache.
-   On open: pull from cloud → render. On change: save local instantly → debounced push to cloud. */
-let cloudPushTimer=null, cloudReady=false;
+   On open: pull from cloud → render. On change: save local instantly → debounced push to cloud.
+   Reliability without constant traffic:
+     - short debounce after edits (snappy, but batches rapid taps)
+     - flush immediately if the tab is hidden/closed before the debounce fires
+     - if a push fails, retry it on the next poll cycle (every 30s) for free */
+let cloudPushTimer=null, cloudReady=false, pendingPush=false;
 function scheduleCloudPush(){
   if(!cloudReady||!SB.enabled||!SB.url||!SB.anonKey) return;
+  pendingPush=true;
   if(cloudPushTimer) clearTimeout(cloudPushTimer);
-  cloudPushTimer=setTimeout(pushAllToCloud, 1200);
+  cloudPushTimer=setTimeout(flushCloudPush, 600);
 }
+async function flushCloudPush(){
+  if(cloudPushTimer){ clearTimeout(cloudPushTimer); cloudPushTimer=null; }
+  if(!pendingPush) return;
+  const ok=await pushAllToCloud();
+  pendingPush=!ok; // if it failed, leave the flag set so the next poll retries it
+}
+// Flush right away if the app is being closed/backgrounded — covers "edit then
+// immediately leave" before the debounce timer would have fired.
+document.addEventListener('visibilitychange',()=>{ if(document.visibilityState==='hidden') flushCloudPush(); });
+window.addEventListener('pagehide',()=>{ flushCloudPush(); });
 
 async function sbWrite(path, rows){
   // upsert helper
@@ -402,10 +417,13 @@ async function sbDelete(path){
     headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,'Prefer':'return=minimal'}});
 }
 
+let pushing=false;
 async function pushAllToCloud(){
   if(!cloudReady||!SB.enabled) return;
+  if(pushing) return true; // a push is already running; it will cover these changes too
+  pushing=true;
   await ensureFreshToken();
-  let failed=0;
+  let failed=0, newRows=false;
   try{
     // Categories: replace all (delete then insert) to handle removals + reorders
     await sbDelete(`categories?id=neq.__none__`);
@@ -434,7 +452,31 @@ async function pushAllToCloud(){
         if(!r.ok) failed++;
       }
     }
+    // Transactions created locally (manual entry / SMS-paste) have no cloud row yet — insert them.
+    for(const x of S.tx){
+      if(!x.sb_tx_id){
+        try{
+          const r=await authedFetch(`${SB.url}/rest/v1/transactions`,{method:'POST',
+            headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,
+              'Content-Type':'application/json','Prefer':'return=representation'},
+            body:JSON.stringify({
+              kind:x.kind||'manual', flow:'out', amount:x.amount, currency:x.currency||'SAR',
+              vendor:x.vendor||'', counterparty_from:x.from||'', counterparty_to:x.to||'',
+              card:x.card||'', bank:x.bank||'', iban:x.iban||'',
+              tx_date:x.date||null, tx_time:(x.time&&/^\d{1,2}:\d{2}/.test(x.time))?x.time:null,
+              label:x.vendor||'', category_id:(x.cat&&x.cat!=='uncat')?x.cat:null,
+              note:x.note||'', raw:x.raw||null })});
+          if(r.ok){
+            const data=await r.json().catch(()=>null);
+            if(Array.isArray(data)&&data[0]&&data[0].id){ x.sb_tx_id=data[0].id; newRows=true; }
+            else failed++;
+          } else failed++;
+        }catch(e){ failed++; }
+      }
+    }
+    if(newRows) saveLocal();
   }catch(e){ console.warn('cloud push error',e); failed++; }
+  pushing=false;
   return failed===0;
 }
 
@@ -713,6 +755,7 @@ async function pollSupabase(){
   if(!SB.enabled||!SB.url||!SB.anonKey||syncing) return;
   syncing=true;
   await ensureFreshToken();
+  if(pendingPush) await flushCloudPush(); // retry a push that failed earlier — free, piggybacks on this cycle
   try{
     // 1) Ask the Edge Function to parse any new SMS (AI). Safe to call repeatedly.
     try{
@@ -1770,8 +1813,9 @@ function bind(){
       async ()=>{ await purgeSupabaseTx(); S={cats:[],tx:[],income:[],vendorMap:{},cards:['SNB Credit Card','SNB Savings','SAB Account'],settings:S.settings}; saveLocal(); await pushAllToCloud(); drillCat=null; view='dash'; render(); toast(LANG==='ar'?'تمت إعادة الضبط':'Reset complete'); }); }
     if(a==='syncnow'){
       toast(LANG==='ar'?'⏳ جارٍ المزامنة…':'⏳ Syncing…');
-      ensureFreshToken().then(()=>pushAllToCloud()).then(ok=>{
-        toast(ok?(LANG==='ar'?'✅ تمت المزامنة':'✅ Synced'):(LANG==='ar'?'⚠️ تعذرت مزامنة بعض العناصر — حاول مجدداً':'⚠️ Some items failed to sync — try again'));
+      pendingPush=true;
+      flushCloudPush().then(()=>{
+        toast(!pendingPush?(LANG==='ar'?'✅ تمت المزامنة':'✅ Synced'):(LANG==='ar'?'⚠️ تعذرت مزامنة بعض العناصر — حاول مجدداً':'⚠️ Some items failed to sync — try again'));
       });
     }
     if(a==='signout'){ confirmSheet(LANG==='ar'?'تسجيل الخروج؟':'Sign out?',
