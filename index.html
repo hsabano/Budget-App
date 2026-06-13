@@ -141,6 +141,11 @@ input,select,textarea{width:100%;background:var(--card);border:1px solid var(--l
   border-radius:12px;padding:13px 14px;color:var(--ink);font-family:inherit;font-size:15px;outline:none}
 input:focus,select:focus,textarea:focus{border-color:var(--acc2)}
 textarea{resize:vertical;min-height:70px}
+/* iOS renders <input type="date"> as its own centered, differently-sized pill
+   regardless of width/padding/border above. Strip the native chrome so it
+   matches every other field exactly — tapping still opens the native picker. */
+input[type="date"]{-webkit-appearance:none;appearance:none;text-align:start}
+input[type="date"]::-webkit-date-and-time-value{text-align:start}
 .row2{display:flex;gap:10px;margin-top:14px}.row2>div{flex:1;min-width:0}
 .row2 select,.row2 input{width:100%;min-width:0;text-overflow:ellipsis;overflow:hidden}
 .btn{width:100%;padding:15px;border-radius:14px;border:none;font-family:inherit;font-weight:700;
@@ -387,18 +392,20 @@ function scheduleCloudPush(){
 
 async function sbWrite(path, rows){
   // upsert helper
-  return fetch(`${SB.url}/rest/v1/${path}`,{method:'POST',
+  return authedFetch(`${SB.url}/rest/v1/${path}`,{method:'POST',
     headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,
       'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
     body:JSON.stringify(rows)});
 }
 async function sbDelete(path){
-  return fetch(`${SB.url}/rest/v1/${path}`,{method:'DELETE',
+  return authedFetch(`${SB.url}/rest/v1/${path}`,{method:'DELETE',
     headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,'Prefer':'return=minimal'}});
 }
 
 async function pushAllToCloud(){
   if(!cloudReady||!SB.enabled) return;
+  await ensureFreshToken();
+  let failed=0;
   try{
     // Categories: replace all (delete then insert) to handle removals + reorders
     await sbDelete(`categories?id=neq.__none__`);
@@ -420,13 +427,15 @@ async function pushAllToCloud(){
     // Transaction categories (update each that has a cloud id)
     for(const x of S.tx){
       if(x.sb_tx_id&&x.cat&&x.cat!=='uncat'){
-        await fetch(`${SB.url}/rest/v1/transactions?id=eq.${x.sb_tx_id}`,{method:'PATCH',
+        const r=await authedFetch(`${SB.url}/rest/v1/transactions?id=eq.${x.sb_tx_id}`,{method:'PATCH',
           headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,
             'Content-Type':'application/json','Prefer':'return=minimal'},
           body:JSON.stringify({category_id:x.cat})});
+        if(!r.ok) failed++;
       }
     }
-  }catch(e){ console.warn('cloud push error',e); }
+  }catch(e){ console.warn('cloud push error',e); failed++; }
+  return failed===0;
 }
 
 async function loadFromCloud(){
@@ -501,6 +510,24 @@ async function refreshSession(){
   }catch(e){ return false; }
 }
 function signOut(){ saveAuth(null); location.reload(); }
+// Proactively refresh the session if it's close to expiry — call before any
+// background sync (push or poll) so long-open tabs don't silently fail writes.
+async function ensureFreshToken(){
+  if(isLoggedIn()&&AUTH.expires_at&&Date.now()>AUTH.expires_at-120000){
+    await refreshSession();
+  }
+}
+// fetch wrapper for Supabase REST writes: retries once after a token refresh on 401.
+async function authedFetch(url,opts){
+  let res=await fetch(url,opts);
+  if(res.status===401&&isLoggedIn()){
+    if(await refreshSession()){
+      const h={...(opts.headers||{})}; h['Authorization']=`Bearer ${authToken()}`;
+      res=await fetch(url,{...opts,headers:h});
+    }
+  }
+  return res;
+}
 
 /* ============ helpers ============ */
 const fmt = n => { const v=Math.round(n||0).toLocaleString(LANG==='ar'?'ar-SA':'en-US'); return v; };
@@ -685,6 +712,7 @@ async function sbFetch(path, opts={}){
 async function pollSupabase(){
   if(!SB.enabled||!SB.url||!SB.anonKey||syncing) return;
   syncing=true;
+  await ensureFreshToken();
   try{
     // 1) Ask the Edge Function to parse any new SMS (AI). Safe to call repeatedly.
     try{
@@ -1211,7 +1239,8 @@ create policy "u" on sms_inbox for update to anon using(true);</div>
 
     <div class="sectit"><h2>${LANG==='ar'?'الحساب':'Account'}</h2></div>
     <div class="note" style="margin-bottom:8px">${AUTH&&AUTH.email?(LANG==='ar'?'مسجّل الدخول كـ ':'Signed in as ')+AUTH.email:''}</div>
-    <button class="btn btn-ghost" data-act="signout">🔓 ${LANG==='ar'?'تسجيل الخروج':'Sign out'}</button>
+    <button class="btn btn-ghost" data-act="syncnow">🔄 ${LANG==='ar'?'مزامنة الآن':'Sync now'}</button>
+    <button class="btn btn-ghost" data-act="signout" style="margin-top:10px">🔓 ${LANG==='ar'?'تسجيل الخروج':'Sign out'}</button>
 
     <div class="sectit"><h2>${t('export')}</h2></div>
     <button class="btn btn-ghost" data-act="export">⬇︎ ${LANG==='ar'?'تصدير العمليات':'Export transactions'} (CSV)</button>
@@ -1739,6 +1768,12 @@ function bind(){
       LANG==='ar'?'إعادة ضبط كاملة؟':'Full reset?',
       LANG==='ar'?'يحذف الفئات والعمليات والدخل. يبقى اتصال Supabase. لا يمكن التراجع.':'Clears categories, transactions, and income. Keeps Supabase connection. Cannot be undone.',
       async ()=>{ await purgeSupabaseTx(); S={cats:[],tx:[],income:[],vendorMap:{},cards:['SNB Credit Card','SNB Savings','SAB Account'],settings:S.settings}; saveLocal(); await pushAllToCloud(); drillCat=null; view='dash'; render(); toast(LANG==='ar'?'تمت إعادة الضبط':'Reset complete'); }); }
+    if(a==='syncnow'){
+      toast(LANG==='ar'?'⏳ جارٍ المزامنة…':'⏳ Syncing…');
+      ensureFreshToken().then(()=>pushAllToCloud()).then(ok=>{
+        toast(ok?(LANG==='ar'?'✅ تمت المزامنة':'✅ Synced'):(LANG==='ar'?'⚠️ تعذرت مزامنة بعض العناصر — حاول مجدداً':'⚠️ Some items failed to sync — try again'));
+      });
+    }
     if(a==='signout'){ confirmSheet(LANG==='ar'?'تسجيل الخروج؟':'Sign out?',
       LANG==='ar'?'ستحتاج لتسجيل الدخول مرة أخرى.':'You will need to sign in again.',
       ()=>signOut()); }
