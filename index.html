@@ -425,21 +425,20 @@ async function pushAllToCloud(){
   await ensureFreshToken();
   let failed=0, newRows=false;
   try{
-    // Categories: replace all (delete then insert) to handle removals + reorders
-    await sbDelete(`categories?id=neq.__none__`);
+    // Categories: upsert by id (insert new, update existing). Never delete-all —
+    // a stale tab's S.cats must not be able to erase categories added elsewhere.
+    // Explicit deletions are pushed at the point of deletion (see delcat handler).
     if(S.cats.length){
       await sbWrite('categories', S.cats.map((c,i)=>({
         id:c.id, name_en:c.name.en||'', name_ar:c.name.ar||'', icon:c.icon||'📁',
         budget:c.budget||0, parent_id:c.parent||null, sort_order:i })));
     }
-    // Income
-    await sbDelete(`income?id=neq.__none__`);
+    // Income: same reasoning — upsert only.
     if(S.income.length){
       await sbWrite('income', S.income.map(i=>({
         id:i.id||uid(), amount:i.amount, source:i.source||'', income_date:i.date||null, kind:i.kind||'' })));
     }
-    // Vendor map
-    await sbDelete(`vendor_map?vendor=neq.__none__`);
+    // Vendor map: same reasoning — upsert only.
     const vm=Object.entries(S.vendorMap||{});
     if(vm.length) await sbWrite('vendor_map', vm.map(([v,c])=>({vendor:v, category_id:c})));
     // Transaction categories (update each that has a cloud id)
@@ -1637,7 +1636,8 @@ function catSheet(editId, presetParent){
     confirmSheet((LANG==='ar'?'حذف ':'Delete ')+(c?cname(c):'')+'?', msg, async ()=>{
       S.cats=S.cats.filter(x=>x.id!==editId&&x.parent!==editId);
       affected.forEach(x=>x.cat='uncat');
-      Object.keys(S.vendorMap||{}).forEach(v=>{ if(ids.includes(S.vendorMap[v])) delete S.vendorMap[v]; });
+      const vendorsToUnmap=Object.keys(S.vendorMap||{}).filter(v=>ids.includes(S.vendorMap[v]));
+      vendorsToUnmap.forEach(v=>delete S.vendorMap[v]);
       // Clear the category on synced transactions in the cloud so other devices match
       if(SB.enabled&&SB.url&&SB.anonKey){
         for(const x of affected){ if(x.sb_tx_id){ try{
@@ -1645,6 +1645,9 @@ function catSheet(editId, presetParent){
             headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,'Content-Type':'application/json','Prefer':'return=minimal'},
             body:JSON.stringify({category_id:null})});
         }catch(e){} } }
+        // Push is upsert-only now, so deletions must be sent explicitly.
+        for(const cid of ids){ try{ await sbDelete(`categories?id=eq.${cid}`); }catch(e){} }
+        for(const v of vendorsToUnmap){ try{ await sbDelete(`vendor_map?vendor=eq.${encodeURIComponent(v)}`); }catch(e){} }
       }
       drillCat=null; save(); render();
       toast(LANG==='ar'?'تم حذف الفئة':'Category deleted');
