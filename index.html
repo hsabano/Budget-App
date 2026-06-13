@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -142,7 +141,7 @@ input,select,textarea{width:100%;background:var(--card);border:1px solid var(--l
   border-radius:12px;padding:13px 14px;color:var(--ink);font-family:inherit;font-size:15px;outline:none}
 input:focus,select:focus,textarea:focus{border-color:var(--acc2)}
 textarea{resize:vertical;min-height:70px}
-.row2{display:flex;gap:10px}.row2>div{flex:1;min-width:0}
+.row2{display:flex;gap:10px;margin-top:14px}.row2>div{flex:1;min-width:0}
 .row2 select,.row2 input{width:100%;min-width:0;text-overflow:ellipsis;overflow:hidden}
 .btn{width:100%;padding:15px;border-radius:14px;border:none;font-family:inherit;font-weight:700;
   font-size:15px;cursor:pointer;margin-top:18px;transition:.15s}
@@ -1515,16 +1514,10 @@ function txSheet(id){
   openSheet(`<h3>${t('txDetail')}</h3>
     <label>${t('amount')} (SAR)</label><input id="e_amt" type="number" value="${x.amount}">
     <label>${t('vendor')}</label><input id="e_ven" value="${x.vendor||''}">
-    <div style="border:2px solid #4d8cff">
-      <label>${t('category')}</label><select id="e_cat">${catSelectOptions(x.cat)}</select>
-    </div>
-    <div class="row2" style="border:2px dashed #ff6b81">
-      <div style="border:2px solid #2ee6a6"><label>${t('date')}</label><input id="e_dt" type="date" value="${x.date}"></div>
-      <div style="border:2px solid #ffb454"><label>${t('card')}</label><select id="e_card">${cardOptions(x.card)}</select></div>
-    </div>
-    <div style="border:2px solid #b94dff">
-      <label>${t('notes')}</label><input id="e_note" value="${x.note||''}">
-    </div>
+    <label>${t('category')}</label><select id="e_cat">${catSelectOptions(x.cat)}</select>
+    <div class="row2"><div><label>${t('date')}</label><input id="e_dt" type="date" value="${x.date}"></div>
+    <div><label>${t('card')}</label><select id="e_card">${cardOptions(x.card)}</select></div></div>
+    <label>${t('notes')}</label><input id="e_note" value="${x.note||''}">
     <button class="btn btn-pri" id="e_save">${t('save')}</button>
     <button class="btn btn-bad" id="e_del">${t('delete')}</button>`);
   document.getElementById('e_save').onclick=()=>{
