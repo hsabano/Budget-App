@@ -371,9 +371,14 @@ const DEFAULT = {
   income:[],
   vendorMap:{}, // vendor(lower) -> catId
   cards:['SNB Credit Card','SNB Savings','SAB Account'],
-  settings:{privacy:false,hijri:false}
+  settings:{privacy:false,hijri:false},
+  // Tracks ids the user actually changed locally, by bucket. Push only sends
+  // these — never a full snapshot — so a stale session with an empty dirty
+  // set can push without overwriting anything another session changed.
+  dirty:{cats:[],income:[],vendorMap:[],txcat:[]}
 };
 let S = load();
+if(!S.dirty) S.dirty={cats:[],income:[],vendorMap:[],txcat:[]}; // migrate older local data
 function load(){ try{ const r=localStorage.getItem('mizan_data'); return r?JSON.parse(r):structuredClone(DEFAULT);}catch(e){return structuredClone(DEFAULT);} }
 function save(){ localStorage.setItem('mizan_data',JSON.stringify(S)); scheduleCloudPush(); }
 
@@ -388,11 +393,19 @@ function saveLocal(){ localStorage.setItem('mizan_data',JSON.stringify(S)); }
      - flush immediately if the tab is hidden/closed before the debounce fires
      - if a push fails, retry it on the next poll cycle (every 30s) for free */
 let cloudPushTimer=null, cloudReady=false, pendingPush=false;
+// Mark a specific id as locally-changed in a given bucket. pushAllToCloud only
+// ever sends ids that are marked dirty — an id never marked dirty is never
+// pushed, so a stale session can't reassert (and overwrite) old state for it.
+function markDirty(bucket,id){
+  if(!S.dirty) S.dirty={cats:[],income:[],vendorMap:[],txcat:[]};
+  if(!S.dirty[bucket]) S.dirty[bucket]=[];
+  if(!S.dirty[bucket].includes(id)) S.dirty[bucket].push(id);
+}
 function scheduleCloudPush(){
   if(!cloudReady||!SB.enabled||!SB.url||!SB.anonKey) return;
   pendingPush=true;
   if(cloudPushTimer) clearTimeout(cloudPushTimer);
-  cloudPushTimer=setTimeout(flushCloudPush, 600);
+  cloudPushTimer=setTimeout(flushCloudPush, 150);
 }
 async function flushCloudPush(){
   if(cloudPushTimer){ clearTimeout(cloudPushTimer); cloudPushTimer=null; }
@@ -419,38 +432,41 @@ async function sbDelete(path){
 
 let pushing=false;
 async function pushAllToCloud(){
-  if(!cloudReady||!SB.enabled) return;
+  if(!cloudReady||!SB.enabled) return true;
   if(pushing) return true; // a push is already running; it will cover these changes too
   pushing=true;
   await ensureFreshToken();
+  if(!S.dirty) S.dirty={cats:[],income:[],vendorMap:[],txcat:[]};
   let failed=0, newRows=false;
   try{
-    // Categories: upsert by id (insert new, update existing). Never delete-all —
-    // a stale tab's S.cats must not be able to erase categories added elsewhere.
-    // Explicit deletions are pushed at the point of deletion (see delcat handler).
-    if(S.cats.length){
-      await sbWrite('categories', S.cats.map((c,i)=>({
+    // Categories: upsert ONLY the ones marked dirty. An id with no local
+    // edits is never sent, so it can never be overwritten by a stale push.
+    const catIds=[...new Set(S.dirty.cats)];
+    const dirtyCats=catIds.map(id=>catById(id)).filter(Boolean);
+    if(dirtyCats.length){
+      const r=await sbWrite('categories', dirtyCats.map(c=>({
         id:c.id, name_en:c.name.en||'', name_ar:c.name.ar||'', icon:c.icon||'📁',
-        budget:c.budget||0, parent_id:c.parent||null, sort_order:i })));
-    }
-    // Income: same reasoning — upsert only.
-    if(S.income.length){
-      await sbWrite('income', S.income.map(i=>({
-        id:i.id||uid(), amount:i.amount, source:i.source||'', income_date:i.date||null, kind:i.kind||'' })));
-    }
-    // Vendor map: same reasoning — upsert only.
-    const vm=Object.entries(S.vendorMap||{});
-    if(vm.length) await sbWrite('vendor_map', vm.map(([v,c])=>({vendor:v, category_id:c})));
-    // Transaction categories (update each that has a cloud id)
-    for(const x of S.tx){
-      if(x.sb_tx_id&&x.cat&&x.cat!=='uncat'){
-        const r=await authedFetch(`${SB.url}/rest/v1/transactions?id=eq.${x.sb_tx_id}`,{method:'PATCH',
-          headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,
-            'Content-Type':'application/json','Prefer':'return=minimal'},
-          body:JSON.stringify({category_id:x.cat})});
-        if(!r.ok) failed++;
-      }
-    }
+        budget:c.budget||0, parent_id:c.parent||null, sort_order:S.cats.indexOf(c) })));
+      if(r.ok) S.dirty.cats=S.dirty.cats.filter(id=>!catIds.includes(id)); else failed++;
+    } else if(catIds.length){ S.dirty.cats=[]; } // dirty ids that no longer exist locally
+
+    // Income: same — upsert only dirty ids.
+    const incIds=[...new Set(S.dirty.income)];
+    const dirtyInc=incIds.map(id=>S.income.find(i=>i.id===id)).filter(Boolean);
+    if(dirtyInc.length){
+      const r=await sbWrite('income', dirtyInc.map(i=>({
+        id:i.id, amount:i.amount, source:i.source||'', income_date:i.date||null, kind:i.kind||'' })));
+      if(r.ok) S.dirty.income=S.dirty.income.filter(id=>!incIds.includes(id)); else failed++;
+    } else if(incIds.length){ S.dirty.income=[]; }
+
+    // Vendor map: same — upsert only dirty vendors.
+    const vmKeys=[...new Set(S.dirty.vendorMap)];
+    const dirtyVm=vmKeys.filter(v=>S.vendorMap[v]);
+    if(dirtyVm.length){
+      const r=await sbWrite('vendor_map', dirtyVm.map(v=>({vendor:v, category_id:S.vendorMap[v]})));
+      if(r.ok) S.dirty.vendorMap=S.dirty.vendorMap.filter(v=>!vmKeys.includes(v)); else failed++;
+    } else if(vmKeys.length){ S.dirty.vendorMap=[]; }
+
     // Transactions created locally (manual entry / SMS-paste) have no cloud row yet — insert them.
     for(const x of S.tx){
       if(!x.sb_tx_id){
@@ -467,11 +483,28 @@ async function pushAllToCloud(){
               note:x.note||'', raw:x.raw||null })});
           if(r.ok){
             const data=await r.json().catch(()=>null);
-            if(Array.isArray(data)&&data[0]&&data[0].id){ x.sb_tx_id=data[0].id; newRows=true; }
+            if(Array.isArray(data)&&data[0]&&data[0].id){
+              x.sb_tx_id=data[0].id; newRows=true;
+              S.dirty.txcat=S.dirty.txcat.filter(id=>id!==x.id); // category was included in the insert
+            }
             else failed++;
           } else failed++;
         }catch(e){ failed++; }
       }
+    }
+    // Transaction categorizations: PATCH category_id ONLY for transactions
+    // WE actually recategorized this session. A stale session that never
+    // touched a transaction has it absent from S.dirty.txcat, so it can
+    // never re-assert (and overwrite) an older category_id for it.
+    const txIds=[...new Set(S.dirty.txcat)];
+    for(const id of txIds){
+      const x=S.tx.find(t=>t.id===id);
+      if(!x||!x.sb_tx_id){ S.dirty.txcat=S.dirty.txcat.filter(i=>i!==id); continue; }
+      const r=await authedFetch(`${SB.url}/rest/v1/transactions?id=eq.${x.sb_tx_id}`,{method:'PATCH',
+        headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,
+          'Content-Type':'application/json','Prefer':'return=minimal'},
+        body:JSON.stringify({category_id:(x.cat&&x.cat!=='uncat')?x.cat:null})});
+      if(r.ok) S.dirty.txcat=S.dirty.txcat.filter(i=>i!==id); else failed++;
     }
     if(newRows) saveLocal();
   }catch(e){ console.warn('cloud push error',e); failed++; }
@@ -771,17 +804,22 @@ async function pollSupabase(){
       // Safety net: transfers between the user's own accounts never count
       if(row.raw && /بين حساباتك/.test(row.raw)) continue;
       if(row.flow==='in'){
-        S.income.push({ id:uid(), sb_tx_id:row.id, amount:Number(row.amount),
+        const incId=uid();
+        S.income.push({ id:incId, sb_tx_id:row.id, amount:Number(row.amount),
           source:row.counterparty_from||row.vendor||row.label||(LANG==='ar'?'إيداع':'Deposit'),
           date:row.tx_date||new Date().toISOString().slice(0,10), kind:row.kind, card:row.card||'', raw:row.raw, time:row.tx_time||'' });
+        markDirty('income',incId); // this deposit isn't in the income table yet
       }else{
         const xferVendor=(row.kind==='transfer_out'&&row.counterparty_to)?((LANG==='ar'?'حوالة إلى ':'Transfer to ')+row.counterparty_to):'';
         const vend=row.vendor||xferVendor||row.label||'';
         const sug = suggestCat(vend);
-        S.tx.push({ id:uid(), sb_tx_id:row.id, amount:Number(row.amount), vendor:vend,
+        const txId=uid();
+        S.tx.push({ id:txId, sb_tx_id:row.id, amount:Number(row.amount), vendor:vend,
           date:row.tx_date||new Date().toISOString().slice(0,10), cat:row.category_id||row.category||sug||'uncat',
           card:row.card||'', note:row.note||'', kind:row.kind, currency:row.currency, time:row.tx_time||'',
           to:row.counterparty_to||'', from:row.counterparty_from||'', raw:row.raw, source:'ai' });
+        // A local auto-suggestion (not yet reflected in cloud's category_id) needs pushing.
+        if(!row.category_id && sug) markDirty('txcat',txId);
       }
       added++;
     }
@@ -1288,6 +1326,7 @@ create policy "u" on sms_inbox for update to anon using(true);</div>
     <div class="note" style="margin-bottom:8px">${AUTH&&AUTH.email?(LANG==='ar'?'مسجّل الدخول كـ ':'Signed in as ')+AUTH.email:''}</div>
     <button class="btn btn-ghost" data-act="syncnow">🔄 ${LANG==='ar'?'مزامنة الآن':'Sync now'}</button>
     <button class="btn btn-ghost" data-act="recover" style="margin-top:10px">🔎 ${LANG==='ar'?'استعادة الفئات المفقودة':'Recover lost categories'}</button>
+    <button class="btn btn-ghost" data-act="exportbackup" style="margin-top:10px">💾 ${LANG==='ar'?'تصدير نسخة احتياطية':'Export backup'}</button>
     <button class="btn btn-ghost" data-act="signout" style="margin-top:10px">🔓 ${LANG==='ar'?'تسجيل الخروج':'Sign out'}</button>
 
     <div class="sectit"><h2>${t('export')}</h2></div>
@@ -1460,15 +1499,19 @@ function expenseSheet(prefill={}){
       <button class="btn btn-pri" id="confirmsms">${t('confirm')}</button>`;
     document.getElementById('confirmsms').onclick=()=>{
       if(p.flow==='in'){
-        S.income.push({id:uid(),amount:p.amount,source:p.from||p.vendor||'Deposit',date:p.date,kind:p.kind});
+        const incId=uid();
+        S.income.push({id:incId,amount:p.amount,source:p.from||p.vendor||'Deposit',date:p.date,kind:p.kind});
+        markDirty('income',incId);
         save();closeSheet();toast(LANG==='ar'?'تمت إضافة الدخل':'Income added');render();
       }else{
         // Save the expense directly — no second form
         const cat = sug || 'uncat';
-        if(p.vendor && cat && cat!=='uncat') S.vendorMap[p.vendor.toLowerCase()]=cat;
-        S.tx.push({ id:uid(), amount:p.amount, vendor:p.vendor||'', date:p.date,
+        if(p.vendor && cat && cat!=='uncat'){ S.vendorMap[p.vendor.toLowerCase()]=cat; markDirty('vendorMap',p.vendor.toLowerCase()); }
+        const txId=uid();
+        S.tx.push({ id:txId, amount:p.amount, vendor:p.vendor||'', date:p.date,
           cat:cat, card:p.card||'', note:'', kind:p.kind, currency:p.currency,
           to:p.to||'', from:p.from||'', raw:p.raw, source:'manual-sms' });
+        if(cat!=='uncat') markDirty('txcat',txId);
         save();closeSheet();toast(t('addedTx'));render();
       }
     };
@@ -1484,9 +1527,11 @@ function expenseSheet(prefill={}){
     if(!amt||amt<=0){toast(t('amount'));return;}
     const cat=document.getElementById('cat').value;
     const ven2=document.getElementById('ven').value.trim();
-    if(ven2&&cat&&cat!=='uncat') S.vendorMap[ven2.toLowerCase()]=cat;
-    S.tx.push({id:uid(),amount:amt,vendor:ven2,date:document.getElementById('dt').value,
+    if(ven2&&cat&&cat!=='uncat'){ S.vendorMap[ven2.toLowerCase()]=cat; markDirty('vendorMap',ven2.toLowerCase()); }
+    const newTxId=uid();
+    S.tx.push({id:newTxId,amount:amt,vendor:ven2,date:document.getElementById('dt').value,
       cat:cat,card:document.getElementById('card').value,note:document.getElementById('note').value});
+    if(cat&&cat!=='uncat') markDirty('txcat',newTxId);
     save();closeSheet();toast(t('addedTx'));render();
   };
 }
@@ -1522,6 +1567,7 @@ function ensureGeneralSub(parent){
   if(!g){
     g={id:uid(), name:{en:'General',ar:'عام'}, icon:parent.icon, budget:0, parent:parent.id, general:true};
     S.cats.push(g);
+    markDirty('cats',g.id);
   }
   return g;
 }
@@ -1532,7 +1578,7 @@ function reconcileLeafAssignments(){
       const c=catById(x.cat);
       if(c&&childrenOf(c.id).length&&!c.general){
         const g=ensureGeneralSub(c);
-        if(x.cat!==g.id){ x.cat=g.id; n++; }
+        if(x.cat!==g.id){ x.cat=g.id; markDirty('txcat',x.id); n++; }
       }
     }
   });
@@ -1559,7 +1605,7 @@ async function recoverGeneralAssignments(){
     const oldCat=map[x.sb_tx_id];
     if(oldCat){
       const p=catById(oldCat);
-      if(p&&childrenOf(p.id).length){ x.cat=ensureGeneralSub(p).id; n++; }
+      if(p&&childrenOf(p.id).length){ x.cat=ensureGeneralSub(p).id; markDirty('txcat',x.id); n++; }
     }
   });
   S.settings.recoveredGeneral=true;
@@ -1625,6 +1671,7 @@ function recoverySheet(){
     const parent=document.getElementById('rop_'+gid).value||null;
     const budget=parseFloat(document.getElementById('rob_'+gid).value)||0;
     S.cats.push({id:gid, name:{en:en||ar,ar:ar||en}, icon:'📁', parent, budget});
+    markDirty('cats',gid);
     save();
     toast(LANG==='ar'?'تم الربط ✅':'Relinked ✅');
     recoverySheet(); // re-render: fewer groups, and this one is now available as a parent
@@ -1672,7 +1719,9 @@ function catSheet(editId, presetParent){
     if(!en&&!ar){toast(t('catName'));return;}
     const data={name:{en:en||ar,ar:ar||en},icon:picked,
       parent:document.getElementById('parent').value||null,budget:parseFloat(document.getElementById('cbud').value)||0};
-    if(editId){Object.assign(c,data);}else{S.cats.push({id:uid(),...data});}
+    let savedId;
+    if(editId){Object.assign(c,data);savedId=editId;}else{savedId=uid();S.cats.push({id:savedId,...data});}
+    markDirty('cats',savedId);
     const moved=reconcileLeafAssignments();
     save();closeSheet();render();
     toast(moved?leafReconcileMsg(moved):t('savedCat'));
@@ -1689,17 +1738,14 @@ function catSheet(editId, presetParent){
       : `${n} transaction${n===1?' is':'s are'} mapped to this category${m?` and its ${m} subcategor${m===1?'y':'ies'}`:''}. They will become Uncategorized. This cannot be undone.`;
     confirmSheet((LANG==='ar'?'حذف ':'Delete ')+(c?cname(c):'')+'?', msg, async ()=>{
       S.cats=S.cats.filter(x=>x.id!==editId&&x.parent!==editId);
-      affected.forEach(x=>x.cat='uncat');
+      S.dirty.cats=S.dirty.cats.filter(id=>!ids.includes(id)); // don't resurrect a deleted category
+      affected.forEach(x=>{ x.cat='uncat'; markDirty('txcat',x.id); });
       const vendorsToUnmap=Object.keys(S.vendorMap||{}).filter(v=>ids.includes(S.vendorMap[v]));
       vendorsToUnmap.forEach(v=>delete S.vendorMap[v]);
-      // Clear the category on synced transactions in the cloud so other devices match
+      // Push is upsert-only now, so the category rows themselves and any
+      // orphaned vendor mappings must be deleted explicitly. Clearing
+      // category_id on affected transactions is handled by the dirty push above.
       if(SB.enabled&&SB.url&&SB.anonKey){
-        for(const x of affected){ if(x.sb_tx_id){ try{
-          await fetch(`${SB.url}/rest/v1/transactions?id=eq.${x.sb_tx_id}`,{method:'PATCH',
-            headers:{'apikey':SB.anonKey,'Authorization':`Bearer ${authToken()}`,'Content-Type':'application/json','Prefer':'return=minimal'},
-            body:JSON.stringify({category_id:null})});
-        }catch(e){} } }
-        // Push is upsert-only now, so deletions must be sent explicitly.
         for(const cid of ids){ try{ await sbDelete(`categories?id=eq.${cid}`); }catch(e){} }
         for(const v of vendorsToUnmap){ try{ await sbDelete(`vendor_map?vendor=eq.${encodeURIComponent(v)}`); }catch(e){} }
       }
@@ -1721,12 +1767,14 @@ function txSheet(id){
     <button class="btn btn-pri" id="e_save">${t('save')}</button>
     <button class="btn btn-bad" id="e_del">${t('delete')}</button>`);
   document.getElementById('e_save').onclick=()=>{
+    const oldCat=x.cat;
     x.amount=parseFloat(document.getElementById('e_amt').value)||x.amount;
     x.vendor=document.getElementById('e_ven').value.trim();
     x.cat=document.getElementById('e_cat').value;
     x.date=document.getElementById('e_dt').value;x.card=document.getElementById('e_card').value;
     x.note=document.getElementById('e_note').value;
-    if(x.vendor&&x.cat&&x.cat!=='uncat')S.vendorMap[x.vendor.toLowerCase()]=x.cat;
+    if(x.vendor&&x.cat&&x.cat!=='uncat'){ S.vendorMap[x.vendor.toLowerCase()]=x.cat; markDirty('vendorMap',x.vendor.toLowerCase()); }
+    if(x.cat!==oldCat) markDirty('txcat',x.id);
     save();closeSheet();toast(t('savedCat'));render();
   };
   document.getElementById('e_del').onclick=async()=>{
@@ -1748,7 +1796,9 @@ function incomeSheet(){
     <button class="btn btn-pri" id="i_save">${t('save')}</button>`);
   document.getElementById('i_save').onclick=()=>{
     const a=parseFloat(document.getElementById('i_amt').value);if(!a||a<=0)return;
-    S.income.push({id:uid(),amount:a,source:document.getElementById('i_src').value.trim(),date:document.getElementById('i_dt').value});
+    const incId=uid();
+    S.income.push({id:incId,amount:a,source:document.getElementById('i_src').value.trim(),date:document.getElementById('i_dt').value});
+    markDirty('income',incId);
     save();closeSheet();render();
   };
 }
@@ -1833,17 +1883,17 @@ function processBudgetRows(rows){
     let mainCreated=false;
     if(!main){
       main={id:uid(),name:{en:mainEn||mainAr,ar:mainAr||mainEn},icon:(!subEn&&!subAr&&icon)?icon:'📁',budget:0,parent:null};
-      S.cats.push(main);created++;mainCreated=true;
+      S.cats.push(main);created++;mainCreated=true;markDirty('cats',main.id);
     }
     if(subEn||subAr){
       let sub=findCat(subEn,main.id)||findCat(subAr,main.id);
-      if(!sub){S.cats.push({id:uid(),name:{en:subEn||subAr,ar:subAr||subEn},icon:icon||'📁',budget,parent:main.id});created++;}
-      else{sub.budget=budget;if(icon)sub.icon=icon;if(subEn)sub.name.en=subEn;if(subAr)sub.name.ar=subAr;updated++;}
+      if(!sub){sub={id:uid(),name:{en:subEn||subAr,ar:subAr||subEn},icon:icon||'📁',budget,parent:main.id};S.cats.push(sub);created++;markDirty('cats',sub.id);}
+      else{sub.budget=budget;if(icon)sub.icon=icon;if(subEn)sub.name.en=subEn;if(subAr)sub.name.ar=subAr;updated++;markDirty('cats',sub.id);}
     }else{
       main.budget=budget;
       if(icon)main.icon=icon;
       if(mainEn)main.name.en=mainEn; if(mainAr)main.name.ar=mainAr;
-      if(!mainCreated)updated++;
+      if(!mainCreated){updated++;markDirty('cats',main.id);}
     }
   }
   return {created,updated,skipped};
@@ -1895,6 +1945,23 @@ function exportBudgetCSV(){
   const a=document.createElement('a');a.href=url;a.download='awzin-budget-vs-actual.csv';a.click();URL.revokeObjectURL(url);
   toast(t('exportData'));
 }
+// Full offline snapshot: every category, transaction, income entry, vendor
+// mapping, card list, and setting — downloaded as a single JSON file the user
+// can keep anywhere. Intentionally excludes S.dirty (an internal sync flag,
+// meaningless outside this session).
+function exportBackup(){
+  const backup={
+    exportedAt:new Date().toISOString(),
+    app:'Awzin', version:1,
+    cats:S.cats, tx:S.tx, income:S.income, vendorMap:S.vendorMap, cards:S.cards, settings:S.settings
+  };
+  const blob=new Blob([JSON.stringify(backup,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url; a.download=`awzin-backup-${new Date().toISOString().slice(0,10)}.json`; a.click();
+  URL.revokeObjectURL(url);
+  toast(LANG==='ar'?'✅ تم تصدير النسخة الاحتياطية':'✅ Backup exported');
+}
 function exportCSV(){
   let csv='\uFEFFDate,Vendor,Category,Amount,Card,Notes\n';
   S.tx.forEach(x=>{const c=catById(x.cat);csv+=`${x.date},"${x.vendor||''}","${c?cname(c):'Uncategorized'}",${x.amount},"${x.card||''}","${x.note||''}"\n`;});
@@ -1921,6 +1988,7 @@ function bind(){
     if(a==='addcat')catSheet();
     if(a==='addsubcat')catSheet(null, el.dataset.parent);
     if(a==='recover')recoverySheet();
+    if(a==='exportbackup')exportBackup();
     if(a==='importsms')expenseSheet();
     if(a==='addincome')incomeSheet();
     if(a==='export')exportCSV();
@@ -1932,7 +2000,14 @@ function bind(){
     if(a==='clearcats'){ confirmSheet(
       LANG==='ar'?'حذف كل الفئات؟':'Clear all categories?',
       LANG==='ar'?'سيتم حذف كل الفئات التجريبية. عملياتك تبقى لكنها ستصبح غير مصنّفة.':'All sample categories will be removed. Your transactions stay but become uncategorized.',
-      async ()=>{ S.cats=[]; S.tx.forEach(x=>x.cat='uncat'); S.vendorMap={}; saveLocal(); await pushAllToCloud(); render(); toast(LANG==='ar'?'تم حذف الفئات':'Categories cleared'); }); }
+      async ()=>{
+        const oldIds=S.cats.map(c=>c.id);
+        S.cats=[]; S.tx.forEach(x=>{x.cat='uncat'; markDirty('txcat',x.id);}); S.vendorMap={};
+        S.dirty.cats=[]; S.dirty.vendorMap=[];
+        saveLocal();
+        if(SB.enabled&&SB.url&&SB.anonKey){ for(const cid of oldIds){ try{ await sbDelete(`categories?id=eq.${cid}`); }catch(e){} } }
+        await pushAllToCloud(); render(); toast(LANG==='ar'?'تم حذف الفئات':'Categories cleared');
+      }); }
     if(a==='cleartx'){ confirmSheet(
       LANG==='ar'?'حذف كل العمليات؟':'Clear all transactions?',
       LANG==='ar'?'سيتم حذف كل العمليات والدخل من التطبيق.':'All transactions and income will be removed from the app.',
@@ -1940,7 +2015,13 @@ function bind(){
     if(a==='resetall'){ confirmSheet(
       LANG==='ar'?'إعادة ضبط كاملة؟':'Full reset?',
       LANG==='ar'?'يحذف الفئات والعمليات والدخل. يبقى اتصال Supabase. لا يمكن التراجع.':'Clears categories, transactions, and income. Keeps Supabase connection. Cannot be undone.',
-      async ()=>{ await purgeSupabaseTx(); S={cats:[],tx:[],income:[],vendorMap:{},cards:['SNB Credit Card','SNB Savings','SAB Account'],settings:S.settings}; saveLocal(); await pushAllToCloud(); drillCat=null; view='dash'; render(); toast(LANG==='ar'?'تمت إعادة الضبط':'Reset complete'); }); }
+      async ()=>{
+        const oldIds=S.cats.map(c=>c.id);
+        if(SB.enabled&&SB.url&&SB.anonKey){ for(const cid of oldIds){ try{ await sbDelete(`categories?id=eq.${cid}`); }catch(e){} } }
+        await purgeSupabaseTx();
+        S={cats:[],tx:[],income:[],vendorMap:{},cards:['SNB Credit Card','SNB Savings','SAB Account'],settings:S.settings,dirty:{cats:[],income:[],vendorMap:[],txcat:[]}};
+        saveLocal(); await pushAllToCloud(); drillCat=null; view='dash'; render(); toast(LANG==='ar'?'تمت إعادة الضبط':'Reset complete');
+      }); }
     if(a==='syncnow'){
       toast(LANG==='ar'?'⏳ جارٍ المزامنة…':'⏳ Syncing…');
       pendingPush=true;
@@ -2002,7 +2083,9 @@ function handleInbound(){
       history.replaceState({},'',location.pathname);
       if(p.ignore||p.amount===null||p.amount===0){ render(); setTimeout(()=>toast(LANG==='ar'?'تم تجاهل رسالة غير مالية':'Ignored a non-transaction message'),200); return true; }
       if(p.flow==='in'){
-        S.income.push({id:uid(),amount:p.amount,source:p.from||p.vendor||'Deposit',date:p.date,kind:p.kind});
+        const incId=uid();
+        S.income.push({id:incId,amount:p.amount,source:p.from||p.vendor||'Deposit',date:p.date,kind:p.kind});
+        markDirty('income',incId);
         save();render();setTimeout(()=>toast(LANG==='ar'?'تمت إضافة الدخل':'Income added'),200);return true;
       }
       const sug=suggestCat(p.vendor);
