@@ -1341,8 +1341,8 @@ function expenseSheet(prefill={}){
       <label>${t('vendor')}</label><input id="ven" value="${prefill.vendor||''}" placeholder="${LANG==='ar'?'اسم المتجر':'Merchant name'}">
       <div id="suggestbox"></div>
       <label>${t('category')}</label><select id="cat">${catOpts}</select>
-      <div class="row2"><div><label>${t('date')}</label><input id="dt" type="date" value="${prefill.date||new Date().toISOString().slice(0,10)}"></div>
-      <div><label>${t('card')}</label><select id="card">${cardOptions(prefill.card||'')}</select></div></div>
+      <label>${t('date')}</label><input id="dt" type="date" value="${prefill.date||new Date().toISOString().slice(0,10)}">
+      <label>${t('card')}</label><select id="card">${cardOptions(prefill.card||'')}</select>
       <label>${t('notes')}</label><input id="note" placeholder="${LANG==='ar'?'اختياري':'optional'}">
       <button class="btn btn-pri" id="savetx">${t('save')}</button>
     </div>`);
@@ -1515,8 +1515,8 @@ function txSheet(id){
     <label>${t('amount')} (SAR)</label><input id="e_amt" type="number" value="${x.amount}">
     <label>${t('vendor')}</label><input id="e_ven" value="${x.vendor||''}">
     <label>${t('category')}</label><select id="e_cat">${catSelectOptions(x.cat)}</select>
-    <div class="row2"><div><label>${t('date')}</label><input id="e_dt" type="date" value="${x.date}"></div>
-    <div><label>${t('card')}</label><select id="e_card">${cardOptions(x.card)}</select></div></div>
+    <label>${t('date')}</label><input id="e_dt" type="date" value="${x.date}">
+    <label>${t('card')}</label><select id="e_card">${cardOptions(x.card)}</select>
     <label>${t('notes')}</label><input id="e_note" value="${x.note||''}">
     <button class="btn btn-pri" id="e_save">${t('save')}</button>
     <button class="btn btn-bad" id="e_del">${t('delete')}</button>`);
