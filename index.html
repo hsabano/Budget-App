@@ -1287,6 +1287,7 @@ create policy "u" on sms_inbox for update to anon using(true);</div>
     <div class="sectit"><h2>${LANG==='ar'?'الحساب':'Account'}</h2></div>
     <div class="note" style="margin-bottom:8px">${AUTH&&AUTH.email?(LANG==='ar'?'مسجّل الدخول كـ ':'Signed in as ')+AUTH.email:''}</div>
     <button class="btn btn-ghost" data-act="syncnow">🔄 ${LANG==='ar'?'مزامنة الآن':'Sync now'}</button>
+    <button class="btn btn-ghost" data-act="recover" style="margin-top:10px">🔎 ${LANG==='ar'?'استعادة الفئات المفقودة':'Recover lost categories'}</button>
     <button class="btn btn-ghost" data-act="signout" style="margin-top:10px">🔓 ${LANG==='ar'?'تسجيل الخروج':'Sign out'}</button>
 
     <div class="sectit"><h2>${t('export')}</h2></div>
@@ -1577,6 +1578,59 @@ function recoverMsg(n){
 }
 
 
+// Recovery: a transaction's x.cat is an opaque id pointing at a category.
+// If that category definition is gone from S.cats (e.g. erased by a stale
+// sync) but x.cat itself was never touched, the transaction still "remembers"
+// which group it belonged to — it just has no name/icon/budget anymore.
+// This scans for such orphaned ids, groups by id, and lets the user give each
+// group a name again. Recreating a category with the SAME id instantly
+// relinks every transaction that was pointing at it.
+function orphanGroups(){
+  const groups={};
+  S.tx.forEach(x=>{
+    if(x.cat&&x.cat!=='uncat'&&!catById(x.cat)){
+      const g=groups[x.cat]=groups[x.cat]||{id:x.cat,count:0,total:0,vendors:[]};
+      g.count++; g.total+=Number(x.amount)||0;
+      if(x.vendor&&!g.vendors.includes(x.vendor)&&g.vendors.length<4) g.vendors.push(x.vendor);
+    }
+  });
+  return Object.values(groups).sort((a,b)=>b.total-a.total);
+}
+function recoverySheet(){
+  const groups=orphanGroups();
+  if(!groups.length){ closeSheet(); toast(LANG==='ar'?'لم يتم العثور على فئات مفقودة 🎉':'No lost categories found 🎉'); return; }
+  const parents=topCats();
+  openSheet(`<h3>${LANG==='ar'?'استعادة الفئات المفقودة':'Recover lost categories'}</h3>
+    <p class="note">${LANG==='ar'
+      ?`تم العثور على ${groups.length} مجموعة من المعاملات تشير إلى فئات لم تعد موجودة. أعطِ كل مجموعة اسماً لإعادة ربطها فوراً بنفس المعاملات.`
+      :`Found ${groups.length} group${groups.length===1?'':'s'} of transactions pointing at categories that no longer exist. Name each group to relink it to the same transactions instantly.`}</p>
+    ${groups.map(g=>`
+      <div class="card" style="margin-top:12px;padding:14px">
+        <div style="font-weight:700">${g.count} ${LANG==='ar'?'معاملة':('transaction'+(g.count===1?'':'s'))} · SAR ${g.total.toLocaleString()}</div>
+        <div class="note" style="margin:4px 0 10px">${g.vendors.join(', ')}${g.vendors.length<g.count?'…':''}</div>
+        <label style="font-size:12px">${t('catName')} (EN)</label><input id="ron_${g.id}" placeholder="e.g. Subscriptions">
+        <label style="font-size:12px">${t('catName')} (عربي)</label><input id="roa_${g.id}" dir="rtl" placeholder="مثال: الاشتراكات">
+        <label style="font-size:12px">${t('parent')}</label>
+        <select id="rop_${g.id}"><option value="">${t('none')}</option>
+          ${parents.map(p=>`<option value="${p.id}">${p.icon} ${cname(p)}</option>`).join('')}</select>
+        <label style="font-size:12px">${t('budgetAmt')} (SAR)</label><input id="rob_${g.id}" type="number" inputmode="decimal" placeholder="0">
+        <button class="btn btn-pri" style="margin-top:10px" data-recreate="${g.id}">${LANG==='ar'?'إنشاء وربط':'Create & relink'}</button>
+      </div>`).join('')}
+  `);
+  document.querySelectorAll('[data-recreate]').forEach(btn=>btn.onclick=()=>{
+    const gid=btn.dataset.recreate;
+    const en=document.getElementById('ron_'+gid).value.trim();
+    const ar=document.getElementById('roa_'+gid).value.trim();
+    if(!en&&!ar){toast(t('catName'));return;}
+    const parent=document.getElementById('rop_'+gid).value||null;
+    const budget=parseFloat(document.getElementById('rob_'+gid).value)||0;
+    S.cats.push({id:gid, name:{en:en||ar,ar:ar||en}, icon:'📁', parent, budget});
+    save();
+    toast(LANG==='ar'?'تم الربط ✅':'Relinked ✅');
+    recoverySheet(); // re-render: fewer groups, and this one is now available as a parent
+  });
+}
+
 function catSheet(editId, presetParent){
   const c=editId?catById(editId):null;
   const parents=topCats().filter(p=>!editId||p.id!==editId);
@@ -1866,6 +1920,7 @@ function bind(){
     if(a==='addexpense'){if(!S.cats.length){toast(t('needCat'));catSheet();return;}expenseSheet();}
     if(a==='addcat')catSheet();
     if(a==='addsubcat')catSheet(null, el.dataset.parent);
+    if(a==='recover')recoverySheet();
     if(a==='importsms')expenseSheet();
     if(a==='addincome')incomeSheet();
     if(a==='export')exportCSV();
