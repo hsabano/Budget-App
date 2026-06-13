@@ -872,7 +872,9 @@ function loginScreen(){
 }
 async function bootAfterLogin(){
   if(SB.enabled&&SB.url&&SB.anonKey){ await loadFromCloud(); }
+  const moved=reconcileLeafAssignments();
   render(); startPolling();
+  if(moved) toast(leafReconcileMsg(moved));
 }
 
 function render(){
@@ -1143,7 +1145,8 @@ function drillView(){
         <div><div class="k">${t('used')}</div><div class="v">${b>0?Math.round(s/b*100):0}%</div></div>
       </div>
     </div>
-    ${kids.length?`<div class="sectit"><h2>${t('subcategory')}</h2></div>${kids.map(k=>subCard(k,list)).join('')}`:''}
+    <div class="sectit"><h2>${t('subcategory')}</h2><a data-act="addsubcat" data-parent="${c.id}">+ ${t('addCat')}</a></div>
+    ${kids.length?kids.map(k=>subCard(k,list)).join(''):''}
     <div class="sectit"><h2>${t('recent')}</h2></div>
     ${txs.length?txs.map(txRow).join(''):`<div class="empty"><div class="e">🧾</div><p>${t('nothingMonth')}</p></div>`}
   </div>`;
@@ -1502,17 +1505,36 @@ function catSelectOptions(sel){
   let o=`<option value="uncat" ${sel==='uncat'||!sel?'selected':''}>❓ ${t('uncategorized')}</option>`;
   topCats().forEach(c=>{const kids=childrenOf(c.id);
     if(kids.length){o+=`<optgroup label="${cname(c)}">`;
-      // Parent itself is independently selectable (general spend not tied to a subcategory)
-      o+=`<option value="${c.id}" ${sel===c.id?'selected':''}>${c.icon} ${cname(c)} (${LANG==='ar'?'عام':'general'})</option>`;
       kids.forEach(k=>o+=`<option value="${k.id}" ${sel===k.id?'selected':''}>${k.icon} ${cname(k)}</option>`);
       o+=`</optgroup>`;}
     else o+=`<option value="${c.id}" ${sel===c.id?'selected':''}>${c.icon} ${cname(c)}</option>`;});
   return o;
 }
 
-function catSheet(editId){
+// Categorization is leaf-only: a category stops being assignable the moment it
+// gains a child. Anything still pointing at a now-non-leaf category gets moved
+// to Uncategorized so totals stay correct and nothing is silently mis-filed.
+// Runs at boot (covers data from the old "(general)" option) and right after
+// saving a category (covers adding a sub under a previously-leaf category that
+// already had transactions on it).
+function reconcileLeafAssignments(){
+  let n=0;
+  S.tx.forEach(x=>{
+    if(x.cat&&x.cat!=='uncat'&&childrenOf(x.cat).length){ x.cat='uncat'; n++; }
+  });
+  if(n) save();
+  return n;
+}
+function leafReconcileMsg(n){
+  return LANG==='ar'
+    ? `تم نقل ${n} معاملة إلى "غير مصنّف" لأن فئتها أصبحت تحتوي على فئات فرعية. أعد تصنيفها ضمن الفئة الفرعية المناسبة.`
+    : `${n} transaction${n===1?' was':'s were'} moved to Uncategorized — ${n===1?'its':'their'} category now has subcategories. Re-file ${n===1?'it':'them'} under the right subcategory.`;
+}
+
+function catSheet(editId, presetParent){
   const c=editId?catById(editId):null;
   const parents=topCats().filter(p=>!editId||p.id!==editId);
+  const selParent = c ? c.parent : (presetParent||'');
   openSheet(`<h3>${editId?t('editCat'):t('addCat')}</h3>
     <label>${t('catName')} (EN)</label><input id="cn_en" value="${c?c.name.en:''}" placeholder="Food">
     <label>${t('catName')} (عربي)</label><input id="cn_ar" value="${c?c.name.ar:''}" placeholder="الطعام" dir="rtl">
@@ -1520,7 +1542,7 @@ function catSheet(editId){
     ${renderIconPicker(c?c.icon:'🍔')}
     <label>${t('parent')}</label>
     <select id="parent"><option value="">${t('none')}</option>
-      ${parents.map(p=>`<option value="${p.id}" ${c&&c.parent===p.id?'selected':''}>${p.icon} ${cname(p)}</option>`).join('')}</select>
+      ${parents.map(p=>`<option value="${p.id}" ${selParent===p.id?'selected':''}>${p.icon} ${cname(p)}</option>`).join('')}</select>
     <label>${t('budgetAmt')} (SAR)</label><input id="cbud" type="number" inputmode="decimal" value="${c?c.budget||'':''}" placeholder="0">
     <button class="btn btn-pri" id="savecat">${t('save')}</button>
     ${editId?`<button class="btn btn-bad" id="delcat">${t('delete')}</button>`:''}`);
@@ -1551,7 +1573,9 @@ function catSheet(editId){
     const data={name:{en:en||ar,ar:ar||en},icon:picked,
       parent:document.getElementById('parent').value||null,budget:parseFloat(document.getElementById('cbud').value)||0};
     if(editId){Object.assign(c,data);}else{S.cats.push({id:uid(),...data});}
-    save();closeSheet();toast(t('savedCat'));render();
+    const moved=reconcileLeafAssignments();
+    save();closeSheet();render();
+    toast(moved?leafReconcileMsg(moved):t('savedCat'));
   };
   if(editId)document.getElementById('delcat').onclick=()=>{
     const kidIds=childrenOf(editId).map(k=>k.id);
@@ -1791,6 +1815,7 @@ function bind(){
     const a=el.dataset.act;
     if(a==='addexpense'){if(!S.cats.length){toast(t('needCat'));catSheet();return;}expenseSheet();}
     if(a==='addcat')catSheet();
+    if(a==='addsubcat')catSheet(null, el.dataset.parent);
     if(a==='importsms')expenseSheet();
     if(a==='addincome')incomeSheet();
     if(a==='export')exportCSV();
@@ -1896,7 +1921,12 @@ function handleInbound(){
       const ok=await refreshSession();
       if(!ok){ saveAuth(null); loginScreen(); return; }
     }
-    if(!handleInbound()){ await loadFromCloud(); render(); }
+    if(!handleInbound()){
+      await loadFromCloud();
+      const moved=reconcileLeafAssignments();
+      render();
+      if(moved) toast(leafReconcileMsg(moved));
+    }
     startPolling();
   } else {
     loginScreen();
