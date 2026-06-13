@@ -872,9 +872,11 @@ function loginScreen(){
 }
 async function bootAfterLogin(){
   if(SB.enabled&&SB.url&&SB.anonKey){ await loadFromCloud(); }
+  const recovered=await recoverGeneralAssignments();
   const moved=reconcileLeafAssignments();
   render(); startPolling();
-  if(moved) toast(leafReconcileMsg(moved));
+  if(recovered) toast(recoverMsg(recovered));
+  else if(moved) toast(leafReconcileMsg(moved));
 }
 
 function render(){
@@ -1512,24 +1514,69 @@ function catSelectOptions(sel){
 }
 
 // Categorization is leaf-only: a category stops being assignable the moment it
-// gains a child. Anything still pointing at a now-non-leaf category gets moved
-// to Uncategorized so totals stay correct and nothing is silently mis-filed.
-// Runs at boot (covers data from the old "(general)" option) and right after
-// saving a category (covers adding a sub under a previously-leaf category that
-// already had transactions on it).
+// gains a child. Anything still pointing at a now-non-leaf category is moved to
+// an auto-created "General" leaf subcategory under that same parent — so it
+// stays a valid leaf AND its spend still rolls up into the parent's total.
+function ensureGeneralSub(parent){
+  let g=childrenOf(parent.id).find(k=>k.general);
+  if(!g){
+    g={id:uid(), name:{en:'General',ar:'عام'}, icon:parent.icon, budget:0, parent:parent.id, general:true};
+    S.cats.push(g);
+  }
+  return g;
+}
 function reconcileLeafAssignments(){
   let n=0;
   S.tx.forEach(x=>{
-    if(x.cat&&x.cat!=='uncat'&&childrenOf(x.cat).length){ x.cat='uncat'; n++; }
+    if(x.cat&&x.cat!=='uncat'){
+      const c=catById(x.cat);
+      if(c&&childrenOf(c.id).length&&!c.general){
+        const g=ensureGeneralSub(c);
+        if(x.cat!==g.id){ x.cat=g.id; n++; }
+      }
+    }
   });
   if(n) save();
   return n;
 }
+// One-time recovery for the previous version of reconcileLeafAssignments, which
+// moved affected transactions to plain "uncat" instead of a General sub. Supabase
+// still has the original category_id for those rows (uncat transactions are
+// skipped by the push loop), so we read it back and route into the right
+// parent's General sub. Only covers transactions that were already synced
+// (have sb_tx_id) — manually-added ones with no cloud row can't be recovered
+// this way and would need to be re-filed by hand.
+async function recoverGeneralAssignments(){
+  if(S.settings.recoveredGeneral||!cloudReady||!SB.enabled) return 0;
+  const candidates=S.tx.filter(x=>x.cat==='uncat'&&x.sb_tx_id);
+  if(!candidates.length){ S.settings.recoveredGeneral=true; saveLocal(); return 0; }
+  let rows;
+  try{ rows=await sbFetch(`transactions?select=id,category_id&category_id=not.is.null`); }
+  catch(e){ return 0; } // network hiccup — try again next boot, don't mark as done
+  const map={}; (rows||[]).forEach(r=>{ map[r.id]=r.category_id; });
+  let n=0;
+  candidates.forEach(x=>{
+    const oldCat=map[x.sb_tx_id];
+    if(oldCat){
+      const p=catById(oldCat);
+      if(p&&childrenOf(p.id).length){ x.cat=ensureGeneralSub(p).id; n++; }
+    }
+  });
+  S.settings.recoveredGeneral=true;
+  if(n) save(); else saveLocal();
+  return n;
+}
 function leafReconcileMsg(n){
   return LANG==='ar'
-    ? `تم نقل ${n} معاملة إلى "غير مصنّف" لأن فئتها أصبحت تحتوي على فئات فرعية. أعد تصنيفها ضمن الفئة الفرعية المناسبة.`
-    : `${n} transaction${n===1?' was':'s were'} moved to Uncategorized — ${n===1?'its':'their'} category now has subcategories. Re-file ${n===1?'it':'them'} under the right subcategory.`;
+    ? `تم نقل ${n} معاملة إلى فئة فرعية "عام" ضمن فئتها الأصلية لأنها أصبحت تحتوي على فئات فرعية.`
+    : `${n} transaction${n===1?' was':'s were'} moved into a "General" subcategory under ${n===1?'its':'their'} original category, since that category now has subcategories.`;
 }
+function recoverMsg(n){
+  return LANG==='ar'
+    ? `تمت استعادة تصنيف ${n} معاملة كانت أصبحت "غير مصنّفة" بالخطأ — تم نقلها إلى فئة فرعية "عام".`
+    : `Recovered ${n} transaction${n===1?'':'s'} that had been incorrectly moved to Uncategorized — restored into a "General" subcategory.`;
+}
+
 
 function catSheet(editId, presetParent){
   const c=editId?catById(editId):null;
@@ -1923,9 +1970,11 @@ function handleInbound(){
     }
     if(!handleInbound()){
       await loadFromCloud();
+      const recovered=await recoverGeneralAssignments();
       const moved=reconcileLeafAssignments();
       render();
-      if(moved) toast(leafReconcileMsg(moved));
+      if(recovered) toast(recoverMsg(recovered));
+      else if(moved) toast(leafReconcileMsg(moved));
     }
     startPolling();
   } else {
