@@ -89,6 +89,10 @@ body.ar .hero::after{right:auto;left:-40px}
 .emoji{width:42px;height:42px;border-radius:12px;background:var(--card2);display:grid;
   place-items:center;font-size:20px;flex:0 0 auto}
 .catname{font-weight:600;font-size:15px}
+.trkchk{width:22px;height:22px;border-radius:7px;border:2px solid var(--line);flex:0 0 auto;
+  display:grid;place-items:center;font-size:13px;font-weight:800;color:#fff;transition:.15s}
+.trkchk.on{background:var(--acc);border-color:var(--acc)}
+.trkchk.mixed{background:var(--acc);border-color:var(--acc);opacity:.5}
 .catsub{color:var(--ink3);font-size:12px;margin-top:1px}
 .catamt{text-align:right;margin-inline-start:auto}
 body.ar .catamt{text-align:left}
@@ -230,7 +234,8 @@ body.ar .copybox::after{right:auto;left:8px}
 .ndot{position:absolute;top:8px;inset-inline-end:9px;width:7px;height:7px;border-radius:50%;background:var(--acc)}
 .periodpill{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
   border-radius:999px;padding:9px 16px;font-size:13px;font-weight:600;color:var(--ink);font-family:inherit;
-  cursor:pointer;margin:6px 20px 0}
+  cursor:pointer;margin:6px 0 0}
+.trackpill.active{border-color:var(--acc);color:var(--acc)}
 .hrow{display:flex;gap:12px;margin-bottom:14px}
 .gcard{flex:0 0 136px;background:var(--card);border:1px solid var(--line);border-radius:20px;padding:13px;
   display:flex;flex-direction:column;align-items:center}
@@ -371,7 +376,10 @@ const DEFAULT = {
   income:[],
   vendorMap:{}, // vendor(lower) -> catId
   cards:['SNB Credit Card','SNB Savings','SAB Account'],
-  settings:{privacy:false,hijri:false},
+  // trackFilter: null = track everything (default). Otherwise an array of
+  // category ids the user wants to focus on — can mix top-level (parent)
+  // ids and individual leaf/child ids. See trackedLeafIds() for expansion.
+  settings:{privacy:false,hijri:false,trackFilter:null},
   // Tracks ids the user actually changed locally, by bucket. Push only sends
   // these — never a full snapshot — so a stale session with an empty dirty
   // set can push without overwriting anything another session changed.
@@ -379,6 +387,7 @@ const DEFAULT = {
 };
 let S = load();
 if(!S.dirty) S.dirty={cats:[],income:[],vendorMap:[],txcat:[]}; // migrate older local data
+if(S.settings && S.settings.trackFilter===undefined) S.settings.trackFilter=null; // migrate older local data
 function load(){ try{ const r=localStorage.getItem('mizan_data'); return r?JSON.parse(r):structuredClone(DEFAULT);}catch(e){return structuredClone(DEFAULT);} }
 function save(){ localStorage.setItem('mizan_data',JSON.stringify(S)); scheduleCloudPush(); }
 
@@ -539,6 +548,8 @@ async function loadFromCloud(){
 }
 
 let view='dash', period='month', customRange=null, drillCat=null, searchQ='', chartMode=null;
+// Transient UI state for the Track picker sheet (not persisted)
+let trackExpanded=new Set(), trackDraft=null;
 
 /* ============ SUPABASE CONFIG ============ */
 // Connection defaults are embedded so any device goes straight to login.
@@ -611,6 +622,155 @@ const cname = c => c.name[LANG] || c.name.en;
 const childrenOf = id => S.cats.filter(c=>c.parent===id);
 const topCats = () => S.cats.filter(c=>!c.parent);
 function catById(id){return S.cats.find(c=>c.id===id);}
+// A "leaf" is any category that can directly hold transactions/budget:
+// either a top-level category with no children, or any child category.
+const isLeaf = c => c.parent || childrenOf(c.id).length===0;
+const allLeafIds = () => S.cats.filter(isLeaf).map(c=>c.id);
+
+/* ---- Track filter picker ---- */
+// Opens (or re-renders, on toggle) the "what to track" picker. trackDraft is
+// a Set of leaf category ids the user is currently choosing — null means "All".
+function trackSheet(){
+  // trackSheet re-renders itself synchronously on every checkbox/chevron click.
+  // openSheet() always appends a new #scrim without removing a prior one, so
+  // without this the DOM accumulates duplicate #scrim/#trk_apply elements —
+  // closeSheet() is a safe no-op on first open (nothing to remove yet).
+  closeSheet();
+  if(trackDraft===null){
+    const f=S.settings.trackFilter;
+    trackDraft = (f&&f.length) ? new Set(trackedLeafIds()||[]) : new Set(); // expand any legacy top-level ids to leaves
+  }
+  const allSelected = trackDraft.size===0;
+  const rows = topCats().map(c=>{
+    const kids=childrenOf(c.id);
+    if(!kids.length){
+      const on=trackDraft.has(c.id);
+      return trackRowHTML(c, on, false, null);
+    }
+    const onCount=kids.filter(k=>trackDraft.has(k.id)).length;
+    const state = onCount===0?'off':onCount===kids.length?'on':'mixed';
+    const expanded=trackExpanded.has(c.id);
+    const kidRows = expanded ? kids.map(k=>trackRowHTML(k, trackDraft.has(k.id), true, c.id)).join('') : '';
+    return trackRowHTML(c, state, true, null, expanded)+kidRows;
+  }).join('');
+  openSheet(`<h3>🎯 ${LANG==='ar'?'تتبّع':'Track'}</h3>
+    <p class="note">${LANG==='ar'
+      ?'اختر الفئات التي تريد تتبعها في لوحة التحكم. العناصر غير المحددة (مثل القروض) لن تُحسب.'
+      :'Choose which categories show up on your dashboard. Anything left unchecked (like loans) is excluded.'}</p>
+    <div class="catcard" data-track="__all__" style="cursor:pointer">
+      <div class="catrow">
+        <div class="trkchk ${allSelected?'on':''}">${allSelected?'✓':''}</div>
+        <div class="catname">${LANG==='ar'?'الكل':'All categories'}</div>
+      </div>
+    </div>
+    ${rows}
+    <button class="btn btn-pri" id="trk_apply" style="margin-top:14px">${LANG==='ar'?'تطبيق':'Apply'}</button>`);
+  document.getElementById('scrim').querySelectorAll('[data-track]').forEach(el=>el.onclick=()=>{
+    const id=el.dataset.track;
+    if(id==='__all__'){ trackDraft=new Set(); trackSheet(); return; }
+    if(el.dataset.expand!==undefined){ // parent row: clicking the row (not the chevron) toggles all its children
+      const c=catById(id), kids=childrenOf(id);
+      const allOn=kids.every(k=>trackDraft.has(k.id));
+      kids.forEach(k=> allOn ? trackDraft.delete(k.id) : trackDraft.add(k.id));
+      trackSheet(); return;
+    }
+    // leaf row (childless top-level, or a child)
+    trackDraft.has(id) ? trackDraft.delete(id) : trackDraft.add(id);
+    trackSheet();
+  });
+  document.getElementById('scrim').querySelectorAll('[data-chevron]').forEach(el=>el.onclick=(e)=>{
+    e.stopPropagation();
+    const id=el.dataset.chevron;
+    trackExpanded.has(id)?trackExpanded.delete(id):trackExpanded.add(id);
+    trackSheet();
+  });
+  document.getElementById('trk_apply').onclick=()=>{
+    S.settings.trackFilter = trackDraft.size ? [...trackDraft] : null;
+    trackDraft=null; trackExpanded=new Set();
+    save(); closeSheet(); render();
+  };
+}
+function trackRowHTML(c, state, isParent, parentId, expanded){
+  // state: true/false for leaves, or 'on'/'off'/'mixed' for parent rows
+  const on = state===true || state==='on';
+  const mixed = state==='mixed';
+  const box = mixed ? '<div class="trkchk mixed">–</div>' : `<div class="trkchk ${on?'on':''}">${on?'✓':''}</div>`;
+  const indent = parentId ? 'margin-inline-start:34px;border-top-left-radius:0;border-top-right-radius:0' : '';
+  const chevron = isParent ? `<button class="iconbtn" style="width:30px;height:30px;font-size:12px;margin-inline-start:auto" data-chevron="${c.id}">${expanded?'▾':'▸'}</button>` : '';
+  return `<div class="catcard" style="cursor:pointer;${indent}" data-track="${c.id}" ${isParent?'data-expand="1"':''}>
+    <div class="catrow">
+      ${box}
+      <div class="emoji" style="width:34px;height:34px;font-size:16px">${c.icon}</div>
+      <div class="catname">${cname(c)}</div>
+      ${chevron}
+    </div>
+  </div>`;
+}
+/* ---- Tracking filter (Settings -> "Track" picker) ----
+   S.settings.trackFilter is either null (track everything, default) or an
+   array of category ids — a mix of top-level ids (meaning "all its leaf
+   children") and individual leaf ids. trackedLeafIds() expands this into
+   the flat set of leaf ids actually used for filtering transactions/budgets.
+   Returns null when filter is off (callers should treat null as "no filter,
+   include everything" rather than "empty set"). */
+function trackedLeafIds(){
+  const f=S.settings.trackFilter;
+  if(!f||!f.length) return null;
+  const out=new Set();
+  f.forEach(id=>{
+    const c=catById(id); if(!c) return;
+    if(isLeaf(c)) out.add(c.id);
+    else childrenOf(c.id).forEach(k=>out.add(k.id)); // top-level w/ children -> all its leaves
+  });
+  return out.size?out:null;
+}
+const isTracking = () => trackedLeafIds()!==null;
+// effective budget total honoring the tracking filter: sums each tracked
+// leaf's own budget (a top-level leaf with no parent uses its own .budget;
+// a child leaf likewise uses its own .budget — never a parent's rollup,
+// since the filter operates at leaf granularity).
+function totalBudgetTracked(){
+  const tracked=trackedLeafIds();
+  if(tracked===null) return totalBudget();
+  let sum=0;
+  S.cats.forEach(c=>{ if(isLeaf(c)&&tracked.has(c.id)) sum+=(c.budget||0); });
+  return sum;
+}
+// Filters a transaction list down to tracked leaf categories. 'uncat' /
+// uncategorized transactions are excluded once a filter is active — an
+// untracked spend shouldn't silently inflate a focused view.
+function filterTrackedTx(list){
+  const tracked=trackedLeafIds();
+  if(tracked===null) return list;
+  return list.filter(x=>x.cat&&tracked.has(x.cat));
+}
+// Top-level categories relevant to the current tracking filter, for the
+// "Top Categories" list and alert contributors. When filtering, a top-level
+// category appears only if it (being a childless leaf) or at least one of
+// its children is tracked.
+function topCatsTracked(){
+  const tracked=trackedLeafIds();
+  if(tracked===null) return topCats();
+  return topCats().filter(c=> tracked.has(c.id) || childrenOf(c.id).some(k=>tracked.has(k.id)));
+}
+// Effective budget of a top-level category, honoring the tracking filter:
+// only tracked leaves under it count (own budget if it's itself a leaf,
+// else the sum of its tracked children's budgets).
+function catBudgetTracked(c){
+  const tracked=trackedLeafIds();
+  if(tracked===null) return catBudget(c);
+  const kids=childrenOf(c.id);
+  if(kids.length) return kids.reduce((a,k)=>a+(tracked.has(k.id)?(k.budget||0):0),0);
+  return tracked.has(c.id)?(c.budget||0):0;
+}
+// Spend for a top-level category honoring the filter: only counts tx whose
+// category is a tracked leaf among c and its children.
+function catSpentTracked(c,list){
+  const tracked=trackedLeafIds();
+  const ids=[c.id,...childrenOf(c.id).map(k=>k.id)];
+  if(tracked===null) return list.filter(x=>ids.includes(x.cat)).reduce((a,x)=>a+x.amount,0);
+  return list.filter(x=>ids.includes(x.cat)&&tracked.has(x.cat)).reduce((a,x)=>a+x.amount,0);
+}
 
 function periodRange(){
   const now=new Date();
@@ -940,7 +1100,19 @@ function header(){
 }
 function periodBar(){
   if(view!=='dash'&&view!=='reports'&&view!=='budget') return '';
-  return `<div><button class="periodpill" data-act="periodpick">📅 ${periodLabel()} <span style="color:var(--ink3)">▾</span></button></div>`;
+  const periodPill=`<button class="periodpill" data-act="periodpick">📅 ${periodLabel()} <span style="color:var(--ink3)">▾</span></button>`;
+  if(view!=='dash') return `<div style="padding:0 20px">${periodPill}</div>`;
+  const tracking=isTracking();
+  const trackLbl=tracking?trackFilterLabel():(LANG==='ar'?'الكل':'All');
+  const trackPill=`<button class="periodpill trackpill ${tracking?'active':''}" data-act="trackpick">🎯 ${trackLbl} <span style="color:var(--ink3)">▾</span></button>`;
+  return `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 20px">${periodPill}${trackPill}</div>`;
+}
+// Short label for the Track pill: "All", a single category's name, or "N tracked".
+function trackFilterLabel(){
+  const f=S.settings.trackFilter;
+  if(!f||!f.length) return LANG==='ar'?'الكل':'All';
+  if(f.length===1){ const c=catById(f[0]); if(c) return cname(c); }
+  return LANG==='ar'?`${f.length} محدد`:`${f.length} tracked`;
 }
 function viewHTML(){
   if(view==='dash') return dashView();
@@ -952,8 +1124,8 @@ function viewHTML(){
 
 /* ---- Dashboard (matches approved design; all values computed live) ---- */
 function dashStats(){
-  const list=txInPeriod();
-  const tb=totalBudget();
+  const list=filterTrackedTx(txInPeriod());
+  const tb=totalBudgetTracked();
   const sp=list.reduce((a,x)=>a+(x.amount||0),0);
   const [ps,pe]=periodRange();
   const msDay=86400000;
@@ -1060,7 +1232,7 @@ function spendChartHTML(st){
 
 function alertCardHTML(st){
   if(!(st.tb>0&&(st.sp>st.tb||(st.isCur&&st.pace>=1.15))))return '';
-  const contrib=topCats().map(c=>{const b=catBudget(c),s=catSpent(c.id,st.list);
+  const contrib=topCatsTracked().map(c=>{const b=catBudgetTracked(c),s=catSpentTracked(c,st.list);
     return{c,s,r:(b>0&&st.dayFrac>0)?s/(b*st.dayFrac)-1:(s>0&&b===0?1:-1)};})
     .filter(o=>o.r>0.05&&o.s>0).sort((a,b)=>b.r-a.r).slice(0,3);
   const chips=contrib.map(o=>`<span class="acchip">${o.c.icon} ${cname(o.c)} <b>+${Math.round(o.r*100)}%</b></span>`).join('');
@@ -1075,7 +1247,8 @@ function alertCardHTML(st){
 }
 
 function topCatsHTML(st){
-  const rows=topCats().map(c=>({c,b:catBudget(c),s:catSpent(c.id,st.list)})).filter(r=>r.s>0||r.b>0).sort((a,b)=>b.s-a.s).slice(0,3);
+  const tracked=trackedLeafIds();
+  const rows=topCatsTracked().map(c=>({c,b:catBudgetTracked(c),s:catSpentTracked(c,st.list)})).filter(r=>r.s>0||r.b>0).sort((a,b)=>b.s-a.s).slice(0,3);
   if(!rows.length)return '';
   const pv=S.settings.privacy?'bal-hidden':'';
   const tint=col=>col==='var(--bad)'?'rgba(255,107,129,.15)':col==='var(--warn)'?'rgba(255,180,84,.15)':'rgba(46,230,166,.15)';
@@ -1084,7 +1257,7 @@ function topCatsHTML(st){
     const col=u>=100?'var(--bad)':u>=70?'var(--warn)':'var(--acc)';
     const lbl=u>=100?(LANG==='ar'?'بلغت الحد':'Limit Reached'):u>=70?(LANG==='ar'?'مراقبة':'Watch'):(LANG==='ar'?'ضمن الحد':'On Track');
     const ids=[r.c.id,...childrenOf(r.c.id).map(k=>k.id)];
-    const n=st.list.filter(x=>ids.includes(x.cat)).length;
+    const n=st.list.filter(x=>ids.includes(x.cat)&&(tracked===null||tracked.has(x.cat))).length;
     return `<div class="trow" data-drill="${r.c.id}">
       <div class="emoji" style="width:40px;height:40px;font-size:18px;background:${tint(col)}">${r.c.icon}</div>
       <div class="tnm"><div class="cn">${cname(r.c)}</div><div class="cm">${n} ${LANG==='ar'?'معاملة':'transactions'}</div></div>
@@ -1867,7 +2040,36 @@ function loadXLSX(){
 function processBudgetRows(rows){
   const norm=s=>String(s??'').trim();
   const low=s=>norm(s).toLowerCase();
-  const pick=(r,keys)=>{for(const k of keys){if(r[k]!==undefined&&norm(r[k])!=='')return norm(r[k]);}return '';};
+  // Header matching is lenient: case, spacing, and punctuation don't matter, so
+  // "Budget (SAR)", "budget(sar)", " Budget (SAR) ", "budget_sar" all match the
+  // same alias. Built once from the first row's keys (sheet_to_json with
+  // defval:'' guarantees every row shares the same key set).
+  const normKey=s=>String(s).toLowerCase().replace(/[^a-z0-9\u0600-\u06FF]/g,'');
+  const keyMap={};
+  if(rows[0]) for(const k of Object.keys(rows[0])) keyMap[normKey(k)]=k;
+  const pick=(r,aliases)=>{
+    for(const a of aliases){
+      const actual=keyMap[normKey(a)];
+      if(actual!==undefined && r[actual]!==undefined && norm(r[actual])!=='') return norm(r[actual]);
+    }
+    return '';
+  };
+  // Parses a budget cell that may contain Arabic-Indic digits (١٢٣), Arabic
+  // thousands/decimal separators (٬ ٫), currency words (SAR / ريال / ر.س / $),
+  // EN-style thousands commas (1,500), or European format (1.500,00).
+  const parseAmt=raw=>{
+    let s=String(raw??'').trim();
+    if(!s) return 0;
+    s=s.replace(/[\u0660-\u0669]/g,d=>String(d.charCodeAt(0)-0x0660))   // Arabic-Indic digits -> 0-9
+       .replace(/[\u06F0-\u06F9]/g,d=>String(d.charCodeAt(0)-0x06F0));  // Persian digits -> 0-9
+    s=s.replace(/\u066B/g,'.').replace(/\u066C/g,'');                   // Arabic decimal/thousands seps
+    s=s.replace(/ر\.?\s?س\.?|ريال|﷼|SAR|SR\b|USD|AED/gi,'').trim();       // currency words/symbols
+    if(/^-?\d{1,3}(\.\d{3})+,\d+$/.test(s)) s=s.replace(/\./g,'').replace(',','.'); // 1.500,00 -> 1500.00
+    else s=s.replace(/,/g,'');                                          // 1,500 -> 1500
+    s=s.replace(/[^0-9.\-]/g,'');                                        // strip anything left over
+    const n=parseFloat(s);
+    return isNaN(n)?0:n;
+  };
   const findCat=(name,parentId)=>{const nm=low(name);if(!nm)return null;
     return S.cats.find(c=>(c.parent||null)===(parentId||null)&&(low(c.name.en)===nm||low(c.name.ar)===nm));};
   let created=0,updated=0,skipped=0;
@@ -1877,7 +2079,7 @@ function processBudgetRows(rows){
     const subEn=pick(r,['Subcategory (EN)','Subcategory','sub_en']);
     const subAr=pick(r,['Subcategory (AR)','الفئة الفرعية','sub_ar']);
     const icon=pick(r,['Icon','أيقونة','icon']);
-    const budget=parseFloat(pick(r,['Budget (SAR)','Budget','الميزانية','budget']).replace(/,/g,''))||0;
+    const budget=parseAmt(pick(r,['Budget (SAR)','Budget','Amount (SAR)','Amount','الميزانية','budget']));
     if(!mainEn&&!mainAr){skipped++;continue;}
     let main=findCat(mainEn,null)||findCat(mainAr,null);
     let mainCreated=false;
@@ -1997,6 +2199,7 @@ function bind(){
     if(a==='xltemplate')downloadTemplate();
     if(a==='notifs')notifSheet();
     if(a==='periodpick')periodSheet();
+    if(a==='trackpick'){trackDraft=null;trackSheet();}
     if(a==='clearcats'){ confirmSheet(
       LANG==='ar'?'حذف كل الفئات؟':'Clear all categories?',
       LANG==='ar'?'سيتم حذف كل الفئات التجريبية. عملياتك تبقى لكنها ستصبح غير مصنّفة.':'All sample categories will be removed. Your transactions stay but become uncategorized.',
