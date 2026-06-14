@@ -1220,11 +1220,22 @@ function gaugeHTML(st){
 
 function statusCardHTML(st){
   const pv=S.settings.privacy?'bal-hidden':'';
+  // Top slot is now fixed: "left to spend" = Budget - Spent, colored red if
+  // overspent. Status-specific framing (over budget / trending over) moves
+  // into a 4th table row below, in the same row style as Budget/Spent/Remaining.
   let title,big,sub,tcol;
-  if(st.tb===0){tcol='var(--ink2)';title=LANG==='ar'?'لا توجد ميزانية بعد':'No budget set yet';big=sar(st.sp);sub=LANG==='ar'?'المصروف هذه الفترة':'spent this period';}
-  else if(st.sp>st.tb){tcol='var(--bad)';title=LANG==='ar'?'تجاوزت ميزانيتك':"You're over budget";big=sar(st.sp-st.tb);sub=LANG==='ar'?'فوق ميزانيتك حتى الآن':'over your budget so far';}
-  else if(st.isCur&&st.pace>=1.15){tcol='var(--warn)';title=LANG==='ar'?'تتجه لتجاوز الميزانية':'Trending over budget';big=sar(Math.max(0,Math.round(st.projOver)));sub=LANG==='ar'?'التجاوز المتوقع هذا الشهر':'projected overspend this month';}
-  else{tcol='var(--acc)';title=LANG==='ar'?'أنت ضمن الحد':"You're on track";big=sar(st.rem);sub=LANG==='ar'?'متبقٍ للصرف':'left to spend';}
+  if(st.tb===0){ tcol='var(--ink2)'; title=LANG==='ar'?'لا توجد ميزانية بعد':'No budget set yet'; big=sar(st.sp); sub=LANG==='ar'?'المصروف هذه الفترة':'spent this period'; }
+  else{ tcol=st.rem<0?'var(--bad)':'var(--acc)'; title=LANG==='ar'?(st.rem<0?'تجاوزت ميزانيتك':'أنت ضمن الحد'):(st.rem<0?"You're over budget":"You're on track"); big=sar(st.rem); sub=LANG==='ar'?'متبقٍ للصرف':'left to spend'; }
+  // Extra status row: only when there's something beyond the plain remaining
+  // figure to flag (overspent, or trending toward overspending this month).
+  let statusRow='';
+  if(st.tb>0&&st.sp>st.tb){
+    const lbl=LANG==='ar'?'تجاوزت ميزانيتك':"You're over budget";
+    statusRow=`<div><span>${lbl}</span><b style="color:var(--bad)">${sar(st.sp-st.tb)}</b></div>`;
+  }else if(st.tb>0&&st.isCur&&st.pace>=1.15){
+    const lbl=LANG==='ar'?'تتجه لتجاوز الميزانية':'Trending over budget';
+    statusRow=`<div><span>${lbl}</span><b style="color:var(--warn)">${sar(Math.max(0,Math.round(st.projOver)))}</b></div>`;
+  }
   const remPct=st.tb>0?Math.round((st.rem/st.tb)*1000)/10:null;
   return `<div class="scard">
     <div class="stitle" style="color:${tcol}">${title}</div>
@@ -1234,6 +1245,7 @@ function statusCardHTML(st){
       <div><span>${t('budget')}</span><b class="${pv}">${sar(st.tb)}</b></div>
       <div><span>${t('spent')}</span><b class="${pv}">${sar(st.sp)}</b></div>
       <div><span>${t('remaining')}</span><b style="color:${st.rem<0?'var(--bad)':'var(--acc)'}">${remPct===null?'—':remPct+'%'}</b></div>
+      ${statusRow}
     </div>
   </div>`;
 }
