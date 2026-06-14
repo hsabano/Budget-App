@@ -383,10 +383,13 @@ const DEFAULT = {
   // Tracks ids the user actually changed locally, by bucket. Push only sends
   // these — never a full snapshot — so a stale session with an empty dirty
   // set can push without overwriting anything another session changed.
-  dirty:{cats:[],income:[],vendorMap:[],txcat:[]}
+  // 'settings' holds a single sentinel id ('main') when any setting (e.g.
+  // trackFilter) needs pushing — there's only ever one settings row per user.
+  dirty:{cats:[],income:[],vendorMap:[],txcat:[],settings:[]}
 };
 let S = load();
-if(!S.dirty) S.dirty={cats:[],income:[],vendorMap:[],txcat:[]}; // migrate older local data
+if(!S.dirty) S.dirty={cats:[],income:[],vendorMap:[],txcat:[],settings:[]}; // migrate older local data
+if(!S.dirty.settings) S.dirty.settings=[]; // migrate data saved before the settings bucket existed
 if(S.settings && S.settings.trackFilter===undefined) S.settings.trackFilter=null; // migrate older local data
 function load(){ try{ const r=localStorage.getItem('mizan_data'); return r?JSON.parse(r):structuredClone(DEFAULT);}catch(e){return structuredClone(DEFAULT);} }
 function save(){ localStorage.setItem('mizan_data',JSON.stringify(S)); scheduleCloudPush(); }
@@ -406,7 +409,7 @@ let cloudPushTimer=null, cloudReady=false, pendingPush=false;
 // ever sends ids that are marked dirty — an id never marked dirty is never
 // pushed, so a stale session can't reassert (and overwrite) old state for it.
 function markDirty(bucket,id){
-  if(!S.dirty) S.dirty={cats:[],income:[],vendorMap:[],txcat:[]};
+  if(!S.dirty) S.dirty={cats:[],income:[],vendorMap:[],txcat:[],settings:[]};
   if(!S.dirty[bucket]) S.dirty[bucket]=[];
   if(!S.dirty[bucket].includes(id)) S.dirty[bucket].push(id);
 }
@@ -445,7 +448,7 @@ async function pushAllToCloud(){
   if(pushing) return true; // a push is already running; it will cover these changes too
   pushing=true;
   await ensureFreshToken();
-  if(!S.dirty) S.dirty={cats:[],income:[],vendorMap:[],txcat:[]};
+  if(!S.dirty) S.dirty={cats:[],income:[],vendorMap:[],txcat:[],settings:[]};
   let failed=0, newRows=false;
   try{
     // Categories: upsert ONLY the ones marked dirty. An id with no local
@@ -475,6 +478,18 @@ async function pushAllToCloud(){
       const r=await sbWrite('vendor_map', dirtyVm.map(v=>({vendor:v, category_id:S.vendorMap[v]})));
       if(r.ok) S.dirty.vendorMap=S.dirty.vendorMap.filter(v=>!vmKeys.includes(v)); else failed++;
     } else if(vmKeys.length){ S.dirty.vendorMap=[]; }
+
+    // Settings (e.g. trackFilter): one row per user, keyed by the user's own
+    // auth id. Only pushed when something in S.settings actually changed —
+    // most sessions never touch this. The whole settings object is stored as
+    // JSONB so future settings sync without further table changes.
+    if(S.dirty.settings.length){
+      const uidAuth=authUserId();
+      if(uidAuth){
+        const r=await sbWrite('app_settings', [{ user_id:uidAuth, data:S.settings }]);
+        if(r.ok) S.dirty.settings=[]; else failed++;
+      } else { S.dirty.settings=[]; } // not logged in (shouldn't happen here) — drop, nothing to push to
+    }
 
     // Transactions created locally (manual entry / SMS-paste) have no cloud row yet — insert them.
     for(const x of S.tx){
@@ -524,10 +539,12 @@ async function pushAllToCloud(){
 async function loadFromCloud(){
   if(!SB.enabled||!SB.url||!SB.anonKey) return false;
   try{
-    const [cats,inc,vm] = await Promise.all([
+    const uidAuth=authUserId();
+    const [cats,inc,vm,settingsRows] = await Promise.all([
       sbFetch('categories?order=sort_order.asc&select=*'),
       sbFetch('income?select=*'),
       sbFetch('vendor_map?select=*'),
+      uidAuth ? sbFetch(`app_settings?user_id=eq.${uidAuth}&select=data`) : Promise.resolve(null),
     ]);
     if(Array.isArray(cats)){
       S.cats = cats.map(c=>({ id:c.id, name:{en:c.name_en,ar:c.name_ar}, icon:c.icon,
@@ -540,6 +557,13 @@ async function loadFromCloud(){
     }
     if(Array.isArray(vm)){
       S.vendorMap = {}; vm.forEach(r=>{ if(r.vendor) S.vendorMap[r.vendor]=r.category_id; });
+    }
+    // Settings (e.g. trackFilter) from another device. Only apply if this
+    // device has no un-pushed local settings change — otherwise a pending
+    // local edit (made while offline) would be silently overwritten by what
+    // was on the server before that edit synced.
+    if(Array.isArray(settingsRows)&&settingsRows[0]&&settingsRows[0].data&&(!S.dirty.settings||!S.dirty.settings.length)){
+      S.settings={...S.settings, ...settingsRows[0].data};
     }
     saveLocal();
     cloudReady=true;
@@ -595,6 +619,17 @@ async function refreshSession(){
   }catch(e){ return false; }
 }
 function signOut(){ saveAuth(null); location.reload(); }
+// Decodes the 'sub' claim (the Supabase auth user id) from the current access
+// token's JWT payload — no extra network call or stored field needed. This is
+// the same id RLS policies check via auth.uid().
+function authUserId(){
+  if(!isLoggedIn()) return null;
+  try{
+    const payload=AUTH.access_token.split('.')[1];
+    const json=atob(payload.replace(/-/g,'+').replace(/_/g,'/'));
+    return JSON.parse(json).sub || null;
+  }catch(e){ return null; }
+}
 // Proactively refresh the session if it's close to expiry — call before any
 // background sync (push or poll) so long-open tabs don't silently fail writes.
 async function ensureFreshToken(){
@@ -686,6 +721,7 @@ function trackSheet(){
   });
   document.getElementById('trk_apply').onclick=()=>{
     S.settings.trackFilter = trackDraft.size ? [...trackDraft] : null;
+    markDirty('settings','main');
     trackDraft=null; trackExpanded=new Set();
     save(); closeSheet(); render();
   };
@@ -948,6 +984,24 @@ async function pollSupabase(){
   syncing=true;
   await ensureFreshToken();
   if(pendingPush) await flushCloudPush(); // retry a push that failed earlier — free, piggybacks on this cycle
+
+  // Settings (e.g. trackFilter) from another device — independent of the
+  // transaction poll below so it still runs even on a cycle with no new
+  // transactions. Skipped if this device has a pending local settings edit
+  // of its own (it'll win on the next push instead of being overwritten).
+  if(!S.dirty.settings||!S.dirty.settings.length){
+    try{
+      const uidAuth=authUserId();
+      if(uidAuth){
+        const rows=await sbFetch(`app_settings?user_id=eq.${uidAuth}&select=data`);
+        if(Array.isArray(rows)&&rows[0]&&rows[0].data){
+          const incoming=JSON.stringify(rows[0].data), current=JSON.stringify(S.settings);
+          if(incoming!==current){ S.settings={...S.settings, ...rows[0].data}; saveLocal(); render(); }
+        }
+      }
+    }catch(e){ /* non-critical — try again next cycle */ }
+  }
+
   try{
     // 1) Ask the Edge Function to parse any new SMS (AI). Safe to call repeatedly.
     try{
@@ -2222,7 +2276,7 @@ function bind(){
         const oldIds=S.cats.map(c=>c.id);
         if(SB.enabled&&SB.url&&SB.anonKey){ for(const cid of oldIds){ try{ await sbDelete(`categories?id=eq.${cid}`); }catch(e){} } }
         await purgeSupabaseTx();
-        S={cats:[],tx:[],income:[],vendorMap:{},cards:['SNB Credit Card','SNB Savings','SAB Account'],settings:S.settings,dirty:{cats:[],income:[],vendorMap:[],txcat:[]}};
+        S={cats:[],tx:[],income:[],vendorMap:{},cards:['SNB Credit Card','SNB Savings','SAB Account'],settings:S.settings,dirty:{cats:[],income:[],vendorMap:[],txcat:[],settings:[]}};
         saveLocal(); await pushAllToCloud(); drillCat=null; view='dash'; render(); toast(LANG==='ar'?'تمت إعادة الضبط':'Reset complete');
       }); }
     if(a==='syncnow'){
