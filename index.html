@@ -296,6 +296,129 @@ body.ar .copybox::after{right:auto;left:8px}
   border:none;color:#06281d;font-size:27px;font-weight:300;margin-top:-26px;cursor:pointer;
   box-shadow:0 10px 26px rgba(46,230,166,.45);flex:0 0 auto}
 .nfab:active{transform:scale(.92)}
+
+/* ===== Redesigned Budgets page ===== */
+.bpage{padding:14px 20px 0;animation:fade .3s ease}
+.bhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.bhead h2{font-size:22px;margin:0;font-weight:800;letter-spacing:-.4px}
+.bhead a{color:var(--acc);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px}
+.bfilters{display:flex;gap:10px;margin-bottom:12px}
+.bfilters .periodpill{flex:1;justify-content:space-between;margin:0}
+.bxls{display:flex;gap:10px;margin-bottom:16px}
+.bxls button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--card);
+  border:1px solid var(--line);border-radius:14px;padding:13px;font-size:13px;font-weight:600;color:var(--ink);
+  font-family:inherit;cursor:pointer}
+.bxls button:active{transform:scale(.98)}
+.bxls svg{width:17px;height:17px;stroke:var(--ink2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+
+/* overview card */
+.ovcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;margin-bottom:14px}
+.ovtop{display:flex;align-items:center;gap:6px;margin-bottom:16px}
+.ovtop .t{font-size:15px;font-weight:700}
+.ovtop .i{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--ink3);color:var(--ink3);
+  font-size:10px;font-weight:800;display:grid;place-items:center;font-style:italic}
+.ovgrid{display:flex;align-items:center;gap:14px}
+.ovleft{flex:1 1 auto;min-width:0;overflow:hidden}
+.ovleft .k{color:var(--ink2);font-size:11.5px;font-weight:600;white-space:nowrap}
+.ovleft .big{font-size:25px;font-weight:800;letter-spacing:-1px;margin:3px 0 1px;white-space:nowrap}
+.ovleft .sub{color:var(--ink3);font-size:11.5px;white-space:nowrap}
+.ovmom{display:flex;align-items:center;gap:5px;margin-top:11px;font-size:11.5px;font-weight:600;color:var(--ink2);
+  border-top:1px solid var(--line);padding-top:11px;white-space:nowrap}
+.ovdonut{flex:0 0 96px;width:96px;height:96px;position:relative}
+.ovdonut svg{width:100%;height:100%}
+.ovdnum{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.ovdnum b{font-size:22px;font-weight:800;letter-spacing:-1px}
+.ovdnum span{font-size:10px;color:var(--ink2);font-weight:600;margin-top:-2px}
+.ovright{flex:0 0 auto;min-width:0;display:flex;flex-direction:column;gap:0;margin-top:14px;border-top:1px solid var(--line);padding-top:6px}
+.ovright>div{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:8px 0;
+  border-bottom:1px solid var(--line);white-space:nowrap}
+.ovright>div:last-child{border-bottom:none}
+.ovright .rk{flex:0 0 auto;font-size:12px;color:var(--ink2);font-weight:600}
+.ovright b{font-weight:700;font-size:14px;color:var(--ink)}
+
+/* budget groups */
+.bgroups{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:6px 16px 10px;margin-bottom:14px}
+.bgh{display:flex;align-items:center;justify-content:space-between;padding:13px 0 11px}
+.bgh .t{font-size:16px;font-weight:800}
+.bgh .gb{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--ink2);font-weight:600}
+.bgh .gb b{color:var(--ink);font-weight:700}
+.bgh .gb svg{width:13px;height:13px;stroke:var(--ink3);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.grp{border-top:1px solid var(--line)}
+.grphead{display:flex;align-items:center;gap:9px;padding:13px 0;cursor:pointer}
+.grpic{width:40px;height:40px;border-radius:12px;background:var(--card2);display:grid;place-items:center;font-size:18px;flex:0 0 auto}
+.grpic svg{width:21px;height:21px;stroke:var(--acc);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.grpnm{flex:1 1 auto;min-width:54px}
+.grpnm .n{font-size:15px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grpnm .s{font-size:11px;color:var(--ink3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grpmid{flex:0 0 104px;min-width:0}
+.grpamt{font-size:11.5px;text-align:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.grpamt b{font-weight:700}.grpamt span{color:var(--ink3)}
+.grpmid .gbar{height:6px;border-radius:999px;background:#0a1326;margin-top:7px;overflow:hidden}
+.grpmid .gbar>div{height:100%;border-radius:999px}
+.grppct{flex:0 0 auto;display:flex;align-items:center;gap:5px}
+.grppill{font-size:11.5px;font-weight:800;padding:5px 9px;border-radius:999px;white-space:nowrap;min-width:44px;text-align:center}
+.grpchev{width:20px;height:20px;color:var(--ink3);display:grid;place-items:center;transition:transform .2s;flex:0 0 auto}
+.grpchev svg{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.grp.open .grpchev{transform:rotate(180deg)}
+.grpkids{padding-bottom:6px}
+.grp:not(.open) .grpkids{display:none}
+.kid{display:flex;align-items:center;gap:8px;padding:11px 0;position:relative}
+.kidtree{flex:0 0 20px;position:relative;align-self:stretch}
+.kidtree::before{content:"";position:absolute;inset-inline-start:6px;top:-11px;bottom:50%;border-inline-start:1.5px dashed var(--line)}
+.kidtree::after{content:"";position:absolute;inset-inline-start:6px;top:50%;width:10px;border-top:1.5px dashed var(--line)}
+.kidic{width:36px;height:36px;border-radius:11px;background:var(--card2);display:grid;place-items:center;font-size:16px;flex:0 0 auto}
+.kidnm{flex:1 1 auto;min-width:48px}
+.kidnm .n{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kidnm .s{font-size:10.5px;color:var(--ink3);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kidmid{flex:0 0 100px;min-width:0}
+.kidamt{font-size:11.5px;text-align:end;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kidamt b{font-weight:700}.kidamt span{color:var(--ink3)}
+.kidmid .gbar{height:5px;border-radius:999px;background:#0a1326;margin-top:6px;overflow:hidden}
+.kidmid .gbar>div{height:100%;border-radius:999px}
+.kidpct{flex:0 0 auto;font-size:13px;font-weight:800;min-width:42px;text-align:end}
+.kidkebab{flex:0 0 auto;width:22px;height:30px;display:grid;place-items:center;color:var(--ink3);cursor:pointer;
+  font-size:17px;letter-spacing:1px;line-height:1}
+.kidkebab:active{color:var(--ink)}
+
+/* recent activity / categorization queue */
+.racard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:16px;margin-bottom:14px}
+.rahead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.rahead .t{display:flex;align-items:center;gap:6px;font-size:16px;font-weight:800}
+.rahead a{color:var(--acc);font-size:13px;font-weight:700;cursor:pointer}
+.ratabs{display:flex;gap:8px;background:var(--bg2);border:1px solid var(--line);border-radius:13px;padding:5px;margin-bottom:6px}
+.ratab{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px;border:none;background:none;
+  color:var(--ink2);font-family:inherit;font-weight:700;font-size:13px;border-radius:9px;cursor:pointer}
+.ratab.on{background:var(--card);color:var(--acc);border:1px solid var(--line)}
+.racount{background:var(--card2);color:var(--ink2);font-size:11px;font-weight:800;min-width:20px;height:20px;
+  border-radius:999px;display:grid;place-items:center;padding:0 5px}
+.ratab.on .racount{background:rgba(46,230,166,.18);color:var(--acc)}
+.qrow{display:flex;align-items:center;gap:11px;padding:13px 0;border-bottom:1px solid var(--line)}
+.qrow:last-child{border-bottom:none}
+.qic{width:42px;height:42px;border-radius:12px;background:var(--card2);display:grid;place-items:center;font-size:19px;flex:0 0 auto}
+.qnm{flex:0 0 auto;min-width:0;max-width:30%}
+.qnm .n{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.qnm .m{font-size:11px;color:var(--ink3);margin-top:1px;white-space:nowrap}
+.qamt{flex:0 0 auto;font-size:13.5px;font-weight:700;white-space:nowrap}
+.qsug{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.qsug .l{font-size:10px;color:var(--ink3);font-weight:600}
+.qsugpill{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);
+  border-radius:9px;padding:6px 9px;font-size:12px;font-weight:600;color:var(--ink);max-width:100%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.qsugpill .cd{color:var(--acc)}
+.qsugpill .cv{color:var(--ink3);margin-inline-start:auto;font-size:11px}
+.qacts{flex:0 0 auto;display:flex;gap:7px}
+.qbtn{border:1px solid var(--line);background:var(--card);color:var(--ink);font-family:inherit;font-weight:700;
+  font-size:12px;padding:8px 12px;border-radius:10px;cursor:pointer}
+.qbtn.acc{border-color:var(--acc);color:var(--acc)}
+.qbtn:active{transform:scale(.95)}
+.qdone{display:flex;align-items:center;gap:10px;padding:8px 0}
+.qcat{flex:0 0 auto;font-size:13px;font-weight:700;color:var(--acc)}
+.qtime{flex:0 0 auto;margin-inline-start:auto;color:var(--ink3);font-size:11.5px;display:flex;align-items:center;gap:6px}
+.qtime svg{width:14px;height:14px;stroke:var(--ink3);fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.qmore{text-align:center;color:var(--acc);font-size:13px;font-weight:700;cursor:pointer;padding:12px 0 4px;
+  display:flex;align-items:center;justify-content:center;gap:6px}
+.qmore svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+
 </style>
 </head>
 <body>
@@ -328,7 +451,14 @@ const T = {
     edit:"Edit",assignCat:"Assign category",incomeV:"Income",expenseV:"Expense",net:"Net",
     cashflow:"Cash Flow",exportData:"Exported to file",addedTx:"Expense added",savedCat:"Category saved",
     deletedTx:"Transaction deleted",alertNear:"is near its budget limit",alertOver:"is over budget",
-    chooseIcon:"Choose icon",seeMore:"see categories"},
+    chooseIcon:"Choose icon",seeMore:"see categories",
+    transactions:"Transactions",allCats:"All Categories",budgetOverview:"Budget Overview",
+    forecast:"Forecast",vsLastMonth:"vs last month",budgetGroups:"Budget Groups",groupBy:"Group by",
+    parentGroup:"Parent",recentActivity:"Recent Activity",needsCat:"Needs Categorization",
+    recentlyCat:"Recently Categorized",accept:"Accept",change:"Change",suggestedLbl:"Suggested",
+    showMore:"Show more",showLess:"Show less",subcats:"subcategories",uploadExcel:"Upload Excel Budget",
+    downloadTemplate:"Download Template",allCaughtUp:"All caught up — nothing to categorize.",
+    catUpdated:"Category updated",editCat2:"Edit",deleteCat2:"Delete",moveTx:"View transactions"},
   ar:{appsub:"الميزانية الشخصية",dash:"الرئيسية",budget:"الميزانية",add:"إضافة",reports:"الرؤى",
     settings:"الإعدادات",totalBudget:"إجمالي الميزانية",spent:"المصروف",remaining:"المتبقي",
     overspend:"تجاوز",compliance:"ضمن الحد",categories:"الفئات",recent:"الأحدث",
@@ -354,7 +484,14 @@ const T = {
     edit:"تعديل",assignCat:"تصنيف",incomeV:"الدخل",expenseV:"المصروف",net:"الصافي",
     cashflow:"التدفق النقدي",exportData:"تم التصدير إلى ملف",addedTx:"تمت إضافة المصروف",savedCat:"تم حفظ الفئة",
     deletedTx:"تم حذف العملية",alertNear:"اقترب من حد الميزانية",alertOver:"تجاوز الميزانية",
-    chooseIcon:"اختر أيقونة",seeMore:"عرض الفئات"}
+    chooseIcon:"اختر أيقونة",seeMore:"عرض الفئات",
+    transactions:"العمليات",allCats:"كل الفئات",budgetOverview:"نظرة عامة",
+    forecast:"التوقع",vsLastMonth:"مقارنة بالشهر الماضي",budgetGroups:"مجموعات الميزانية",groupBy:"تجميع حسب",
+    parentGroup:"الأصل",recentActivity:"النشاط الأخير",needsCat:"بحاجة لتصنيف",
+    recentlyCat:"صُنّفت مؤخراً",accept:"قبول",change:"تغيير",suggestedLbl:"مقترح",
+    showMore:"عرض المزيد",showLess:"عرض أقل",subcats:"فئة فرعية",uploadExcel:"رفع ميزانية Excel",
+    downloadTemplate:"تنزيل القالب",allCaughtUp:"كل شيء مصنّف — لا يوجد ما يحتاج تصنيفاً.",
+    catUpdated:"تم تحديث الفئة",editCat2:"تعديل",deleteCat2:"حذف",moveTx:"عرض العمليات"}
 };
 let LANG = localStorage.getItem('mizan_lang') || 'en';
 const t = k => (T[LANG][k] ?? k);
@@ -574,6 +711,10 @@ async function loadFromCloud(){
 let view='dash', period='month', customRange=null, drillCat=null, searchQ='', chartMode=null;
 // Transient UI state for the Track picker sheet (not persisted)
 let trackExpanded=new Set(), trackDraft=null;
+// Redesigned Budgets page UI state (not persisted): which parent groups are
+// expanded, the active Recent-Activity tab, and whether the queue is expanded.
+let bgroupOpen=null, catqTab='needs', catqExpanded=false;
+let groupByMode='parent';
 
 /* ============ SUPABASE CONFIG ============ */
 // Connection defaults are embedded so any device goes straight to login.
@@ -1150,10 +1291,11 @@ function header(){
     <div class="tbtns">
       <button class="iconbtn ${pv?'on':''}" data-act="togprivacy" title="privacy">${pv?'🙈':'👁'}</button>
       <button class="iconbtn" data-act="notifs" title="alerts">🔔${hasAlerts?'<span class="ndot"></span>':''}</button>
+      <button class="iconbtn ${view==='settings'?'on':''}" data-go="settings" title="settings"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     </div></div>`;
 }
 function periodBar(){
-  if(view!=='dash'&&view!=='reports'&&view!=='budget') return '';
+  if(view!=='dash'&&view!=='reports') return '';
   const periodPill=`<button class="periodpill" data-act="periodpick">📅 ${periodLabel()} <span style="color:var(--ink3)">▾</span></button>`;
   if(view!=='dash') return `<div style="padding:0 20px">${periodPill}</div>`;
   const tracking=isTracking();
@@ -1171,6 +1313,7 @@ function trackFilterLabel(){
 function viewHTML(){
   if(view==='dash') return dashView();
   if(view==='budget') return drillCat?drillView():budgetView();
+  if(view==='transactions') return transactionsView();
   if(view==='reports') return reportsView();
   if(view==='settings') return settingsView();
   return '';
@@ -1376,18 +1519,250 @@ function txRow(x){
   </div>`;
 }
 
-/* ---- Budget (all categories list + manage) ---- */
-function budgetView(){
+/* ---- Budget (REDESIGNED: overview + alerts + groups + categorization queue) ---- */
+function budgetStats(){
+  // Whole-portfolio stats for the selected period (not tracking-filtered —
+  // the Budgets page always shows the complete picture).
   const list=txInPeriod();
-  return `<div class="view">
-    <div class="sectit"><h2>${t('budget')}</h2><a data-act="addcat">+ ${t('addCat')}</a></div>
-    <div style="display:flex;gap:8px;margin:-2px 0 14px">
-      <button class="btn btn-ghost" style="margin-top:0;flex:1;padding:11px;font-size:12.5px" data-act="xlupload">⬆️ ${LANG==='ar'?'رفع ميزانية Excel':'Upload Excel budget'}</button>
-      <button class="btn btn-ghost" style="margin-top:0;flex:1;padding:11px;font-size:12.5px" data-act="xltemplate">⬇️ ${LANG==='ar'?'تنزيل القالب':'Download template'}</button>
+  const tb=totalBudget();
+  const sp=totalSpent(list);
+  const [ps,pe]=periodRange();
+  const msDay=86400000;
+  const daysInPeriod=Math.max(1,Math.floor((pe-ps)/msDay)+1);
+  const now=new Date();
+  const isCur=period==='month';
+  const dayOf=isCur?Math.min(now.getDate(),daysInPeriod):daysInPeriod;
+  const dayFrac=dayOf/daysInPeriod;
+  const expected=tb*dayFrac;
+  const pace=expected>0?sp/expected:0;
+  const projection=(isCur&&dayOf>0)?(sp/dayOf)*daysInPeriod:sp;
+  const usedPct=tb>0?(sp/tb)*100:(sp>0?999:0);
+  return {list,tb,sp,rem:tb-sp,daysInPeriod,dayOf,dayFrac,pace,projection,projOver:projection-tb,usedPct,isCur};
+}
+function budgetView(){
+  const st=budgetStats();
+  const trackLbl=isTracking()?trackFilterLabel():t('allCats');
+  return `<div class="bpage">
+    <div class="bhead"><h2>${LANG==='ar'?'الميزانيات':'Budgets'}</h2>
+      <a data-act="addcat">+ ${t('addCat')}</a></div>
+    <div class="bfilters">
+      <button class="periodpill" data-act="periodpick">📅 ${periodLabel()} <span style="color:var(--ink3)">▾</span></button>
+      <button class="periodpill trackpill ${isTracking()?'active':''}" data-act="trackpick">🗂️ ${trackLbl} <span style="color:var(--ink3)">▾</span></button>
+    </div>
+    <div class="bxls">
+      <button data-act="xlupload"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>${t('uploadExcel')}</button>
+      <button data-act="xltemplate"><svg viewBox="0 0 24 24"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>${t('downloadTemplate')}</button>
     </div>
     <input type="file" id="xlfile" accept=".xlsx,.xls,.csv" style="display:none">
-    ${topCats().length?topCats().map(c=>catCard(c,list)).join(''):emptyCats()}
-    <div class="sectit"><h2>${t('recent')}</h2></div>
+    ${topCats().length?budgetOverviewCard(st):''}
+    ${alertCardHTML2(st)}
+    ${topCats().length?budgetGroupsCard(st):emptyCats()}
+    ${categorizationCard()}
+  </div>`;
+}
+
+function budgetOverviewCard(st){
+  const pv=S.settings.privacy?'bal-hidden':'';
+  const used=Math.round(st.usedPct);
+  const col=st.tb===0?'var(--ink3)':used>100?'var(--bad)':used>=80?'var(--warn)':'var(--acc)';
+  const r=44,circ=2*Math.PI*r,fill=circ*Math.min(st.tb>0?used:0,100)/100;
+  const mom=momChange();
+  const momUp=mom.diff>0, momFlat=mom.diff===0;
+  const momCol=momFlat?'var(--ink3)':momUp?'var(--bad)':'var(--acc)';
+  const momArrow=momFlat?'→':momUp?'↑':'↓';
+  return `<div class="ovcard">
+    <div class="ovtop"><span class="t">${t('budgetOverview')}</span><span class="i">i</span></div>
+    <div class="ovgrid">
+      <div class="ovleft">
+        <div class="k">${t('totalBudget')}</div>
+        <div class="big ${pv}">${sar(st.tb)}</div>
+        <div class="sub">${periodLabel()}</div>
+        <div class="ovmom"><span>${t('vsLastMonth')}</span><b style="color:${momCol}">${momArrow} ${Math.abs(mom.pct)}%</b></div>
+      </div>
+      <div class="ovdonut" dir="ltr">
+        <svg viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="${r}" fill="none" stroke="#0a1322" stroke-width="9"/>
+          ${fill>0?`<circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${fill} ${circ}" transform="rotate(-90 50 50)"/>`:''}
+        </svg>
+        <div class="ovdnum"><b>${st.tb>0?used+'%':'—'}</b><span>${t('used')}</span></div>
+      </div>
+    </div>
+    <div class="ovright">
+      <div><span class="rk">${t('spent')}</span><b class="${pv}">${sar(st.sp)}</b></div>
+      <div><span class="rk">${t('remaining')}</span><b class="${pv}" style="color:${st.rem<0?'var(--bad)':'var(--acc)'}">${sar(st.rem)}</b></div>
+      <div><span class="rk">${t('forecast')}</span><b class="${pv}">${sar(Math.round(st.projection))}</b></div>
+    </div>
+  </div>`;
+}
+
+// Alert card variant for the Budgets page (whole-portfolio, not tracked subset)
+function alertCardHTML2(st){
+  if(!(st.tb>0&&(st.sp>st.tb||(st.isCur&&st.pace>=1.15))))return '';
+  const contrib=topCats().map(c=>{const b=catBudget(c),s=catSpent(c.id,st.list);
+    return{c,s,r:(b>0&&st.dayFrac>0)?s/(b*st.dayFrac)-1:(s>0&&b===0?1:-1)};})
+    .filter(o=>o.r>0.05&&o.s>0).sort((a,b)=>b.r-a.r).slice(0,3);
+  const chips=contrib.map(o=>`<span class="acchip">${o.c.icon} ${cname(o.c)} <b>+${Math.round(o.r*100)}%</b></span>`).join('');
+  const exceed=Math.max(0,Math.round(st.projOver));
+  return `<div class="acard" data-go="reports">
+    <div class="arow"><div class="aic">🚨</div><div style="min-width:0"><div class="at">${LANG==='ar'?'تنبيه الميزانية':'Budget Alerts'}</div>
+      <div class="ad">${LANG==='ar'?'تصرف بوتيرة':"You're spending"} <b style="color:var(--bad)">${st.pace.toFixed(1)}×</b> ${LANG==='ar'?'أسرع من المخطط.':'faster than planned.'}</div></div>
+      <div class="aarr">›</div></div>
+    ${chips?`<div class="acchips" style="margin-top:11px">${chips}</div>`:''}
+  </div>`;
+}
+
+function budgetGroupsCard(st){
+  // Initialize the open-set on first render: open the first group by default.
+  if(bgroupOpen===null){ bgroupOpen=new Set(); const first=topCats()[0]; if(first) bgroupOpen.add(first.id); }
+  const groups=topCats().map(c=>budgetGroupRow(c,st.list)).join('');
+  return `<div class="bgroups">
+    <div class="bgh"><span class="t">${t('budgetGroups')}</span>
+      <span class="gb">${t('groupBy')}: <b>${t('parentGroup')}</b>
+        <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></div>
+    ${groups}
+  </div>`;
+}
+
+function statusPillStyle(u){
+  if(u>=100) return {bg:'rgba(255,107,129,.15)',col:'var(--bad)'};
+  if(u>=80)  return {bg:'rgba(255,180,84,.15)',col:'var(--warn)'};
+  return {bg:'rgba(46,230,166,.15)',col:'var(--acc)'};
+}
+function barColor(u){ return u>=100?'var(--bad)':u>=80?'var(--warn)':'var(--acc)'; }
+
+function budgetGroupRow(c,list){
+  const pv=S.settings.privacy?'bal-hidden':'';
+  const kids=childrenOf(c.id);
+  const b=catBudget(c), s=catSpent(c.id,list);
+  const u=b>0?(s/b)*100:(s>0?100:0);
+  const open=bgroupOpen&&bgroupOpen.has(c.id);
+  const pill=statusPillStyle(u);
+  const sub=c.desc||(kids.length?`${kids.length} ${t('subcats')}`:t('category'));
+  const kidsHTML=kids.map(k=>{
+    const kb=k.budget||0, ks=catSpent(k.id,list);
+    const ku=kb>0?(ks/kb)*100:(ks>0?100:0);
+    const ksub=k.desc||'';
+    return `<div class="kid">
+      <div class="kidtree"></div>
+      <div class="kidic">${k.icon}</div>
+      <div class="kidnm"><div class="n">${cname(k)}</div>${ksub?`<div class="s">${ksub}</div>`:''}</div>
+      <div class="kidmid"><div class="kidamt"><b class="${pv}">${sar(ks)}</b> <span>/ ${fmt(kb)}</span></div>
+        <div class="gbar"><div style="width:${Math.min(100,ku)}%;background:${barColor(ku)}"></div></div></div>
+      <div class="kidpct" style="color:${barColor(ku)}">${Math.round(ku)}%</div>
+      <div class="kidkebab" data-kebab="${k.id}">⋮</div>
+    </div>`;
+  }).join('');
+  return `<div class="grp ${open?'open':''}">
+    <div class="grphead" data-group="${c.id}">
+      <div class="grpic">${c.icon}</div>
+      <div class="grpnm"><div class="n">${cname(c)}</div><div class="s">${sub}</div></div>
+      <div class="grpmid"><div class="grpamt"><b class="${pv}">${sar(s)}</b> <span>/ ${fmt(b)}</span></div>
+        <div class="gbar"><div style="width:${Math.min(100,u)}%;background:${barColor(u)}"></div></div></div>
+      <div class="grppct">
+        <span class="grppill" style="background:${pill.bg};color:${pill.col}">${b>0?Math.round(u):0}%</span>
+        <span class="grpchev"><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span>
+      </div>
+    </div>
+    ${kids.length?`<div class="grpkids">${kidsHTML}</div>`:''}
+  </div>`;
+}
+
+/* ---- Categorization queue (Needs Categorization tab) ---- */
+function uncatTx(){ return [...S.tx].filter(x=>!x.cat||x.cat==='uncat').sort((a,b)=>txStamp(b)-txStamp(a)); }
+function recentlyCatTx(){ return [...S.tx].filter(x=>x.cat&&x.cat!=='uncat'&&x._justCat).sort((a,b)=>txStamp(b)-txStamp(a)); }
+
+function categorizationCard(){
+  const needs=uncatTx();
+  const needsCount=needs.length;
+  const tab=catqTab;
+  return `<div class="racard">
+    <div class="rahead"><span class="t">${t('recentActivity')} <span class="ovtop" style="display:inline-flex"><span class="i">i</span></span></span>
+      <a data-go="transactions">${t('viewall')}</a></div>
+    <div class="ratabs">
+      <button class="ratab ${tab==='needs'?'on':''}" data-catqtab="needs">${t('needsCat')} <span class="racount">${needsCount}</span></button>
+      <button class="ratab ${tab==='done'?'on':''}" data-catqtab="done">${t('recentlyCat')}</button>
+    </div>
+    ${tab==='needs'?needsList(needs):doneList()}
+  </div>`;
+}
+function needsList(needs){
+  if(!needs.length) return `<div class="empty" style="padding:30px 10px"><div class="e">✅</div><p>${t('allCaughtUp')}</p></div>`;
+  const show=catqExpanded?needs:needs.slice(0,4);
+  const rows=show.map(x=>{
+    const sug=suggestCat(x.vendor);
+    const sc=sug?catById(sug):null;
+    return `<div class="qrow" data-qrow="${x.id}">
+      <div class="qic">${sc?sc.icon:'❓'}</div>
+      <div class="qnm"><div class="n">${x.vendor||t('expenseV')}</div><div class="m">${qtimeLabel(x)}</div></div>
+      <div class="qamt">−${sar(x.amount)}</div>
+      ${sc?`<div class="qsug"><span class="l">${t('suggestedLbl')}</span>
+        <span class="qsugpill" data-qchange="${x.id}"><span class="cd">${sc.icon} ${cname(sc)}</span><span class="cv">▾</span></span></div>
+        <div class="qacts"><button class="qbtn acc" data-qaccept="${x.id}" data-cat="${sug}">${t('accept')}</button>
+          <button class="qbtn" data-qchange="${x.id}">${t('change')}</button></div>`
+        :`<div class="qsug"></div><div class="qacts"><button class="qbtn acc" data-qchange="${x.id}">${t('pickCat')}</button></div>`}
+    </div>`;
+  }).join('');
+  const more=needs.length>4?`<div class="qmore" data-catqmore>${catqExpanded?t('showLess'):t('showMore')}
+    <svg viewBox="0 0 24 24"><path d="${catqExpanded?'M18 15l-6-6-6 6':'M6 9l6 6 6-6'}"/></svg></div>`:'';
+  return rows+more;
+}
+function doneList(){
+  // "Recently Categorized" history is out of scope this pass — show a light placeholder.
+  const done=[...S.tx].filter(x=>x.cat&&x.cat!=='uncat').sort((a,b)=>txStamp(b)-txStamp(a)).slice(0,5);
+  if(!done.length) return `<div class="empty" style="padding:30px 10px"><div class="e">🗂️</div><p>${t('nothingMonth')}</p></div>`;
+  return done.map(x=>{const c=catById(x.cat);return `<div class="qrow" data-tx="${x.id}">
+    <div class="qic">${c?c.icon:'💸'}</div>
+    <div class="qnm"><div class="n">${x.vendor||t('expenseV')}</div><div class="m">${qtimeLabel(x)}</div></div>
+    <div class="qamt">−${sar(x.amount)}</div>
+    <div class="qsug" style="flex-direction:row;align-items:center"><span class="qcat">${c?cname(c):''}</span></div>
+    <div class="qtime"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></div>
+  </div>`;}).join('');
+}
+function qtimeLabel(x){
+  const d=new Date(x.date+'T'+(x.time&&/^\d{1,2}:\d{2}/.test(x.time)?x.time:'12:00'));
+  const now=new Date();
+  const today=now.toISOString().slice(0,10), y=new Date(now-86400000).toISOString().slice(0,10);
+  const tm=x.time&&/^\d{1,2}:\d{2}/.test(x.time)?x.time:'';
+  if(x.date===today) return (LANG==='ar'?'اليوم':'Today')+(tm?' · '+tm:'');
+  if(x.date===y) return (LANG==='ar'?'أمس':'Yesterday')+(tm?' · '+tm:'');
+  return fmtDate(x.date);
+}
+// Apply a suggested category to a transaction from the queue, learn the vendor,
+// and sync — same bookkeeping as a manual re-categorization.
+function acceptSuggestion(txId,catId){
+  const x=S.tx.find(t=>t.id===txId); if(!x||!catId) return;
+  x.cat=catId;
+  if(x.vendor && catId!=='uncat'){ S.vendorMap[x.vendor.toLowerCase()]=catId; markDirty('vendorMap',x.vendor.toLowerCase()); }
+  markDirty('txcat',txId);
+  save(); toast(t('catUpdated')); render();
+}
+// Kebab action menu for a sub-category row.
+function catKebabSheet(catId){
+  const c=catById(catId); if(!c) return;
+  openSheet(`<h3>${c.icon} ${cname(c)}</h3>
+    <button class="btn btn-ghost" data-kebabedit="${catId}" style="text-align:start">✏️ ${t('editCat2')}</button>
+    <button class="btn btn-ghost" data-kebabtx="${catId}" style="text-align:start;margin-top:10px">🧾 ${t('moveTx')}</button>
+    <button class="btn btn-bad" data-kebabdel="${catId}" style="margin-top:10px">🗑️ ${t('deleteCat2')}</button>`);
+  document.querySelector('[data-kebabedit]').onclick=()=>{closeSheet();catSheet(catId);};
+  document.querySelector('[data-kebabtx]').onclick=()=>{closeSheet();searchQ=cname(c);view='transactions';drillCat=null;render();};
+  document.querySelector('[data-kebabdel]').onclick=()=>{closeSheet();
+    confirmSheet(LANG==='ar'?'حذف الفئة؟':'Delete category?',
+      LANG==='ar'?'ستصبح عمليات هذه الفئة غير مصنّفة.':'Transactions in this category will become uncategorized.',
+      async ()=>{
+        S.tx.forEach(x=>{if(x.cat===catId){x.cat='uncat';markDirty('txcat',x.id);}});
+        S.cats=S.cats.filter(k=>k.id!==catId);
+        S.dirty.cats=S.dirty.cats.filter(id=>id!==catId);
+        saveLocal();
+        if(SB.enabled&&SB.url&&SB.anonKey){ try{ await sbDelete(`categories?id=eq.${catId}`); }catch(e){} }
+        await pushAllToCloud(); render(); toast(t('deletedTx'));
+      });
+  };
+}
+
+/* ---- Transactions page (full list, searchable) ---- */
+function transactionsView(){
+  return `<div class="view">
+    <div class="sectit"><h2>${t('transactions')}</h2></div>
     <div class="searchbar"><input id="search" placeholder="${t('search')}" value="${searchQ}"></div>
     ${allTxList()}
   </div>`;
@@ -1398,7 +1773,7 @@ function allTxList(){
     return (x.vendor||'').toLowerCase().includes(q)||(c&&cname(c).toLowerCase().includes(q))||
     String(x.amount).includes(q)||x.date.includes(q);});}
   if(!list.length) return `<div class="empty"><div class="e">🔍</div><p>${t('noTxD')}</p></div>`;
-  return list.map(txRow).join('');
+  return `<div class="tcard">${list.map(txRow).join('')}</div>`;
 }
 
 /* ---- Drill down ---- */
@@ -1595,9 +1970,9 @@ function toggleRow(ic,title,desc,on,act,arrow){
 function nav(){
   const uncat=S.tx.filter(x=>!x.cat||x.cat==='uncat').length;
   const items=[['dash',t('dash'),'M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
-    ['reports',t('reports'),'M4 19V5m6 14V9m6 10v-6m4 6V7'],
+    ['transactions',t('transactions'),'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 7h6m-6 4h4'],
     ['budget',LANG==='ar'?'الميزانيات':'Budgets','M3 7h18v12H3zM3 7l3-3h12l3 3'],
-    ['settings',t('settings'),'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6M3 12h2m14 0h2M12 3v2m0 14v2']];
+    ['reports',t('reports'),'M4 19V5m6 14V9m6 10v-6m4 6V7']];
   const btn=([k,l,p])=>`<button class="navb ${view===k?'on':''}" data-go="${k}">
     <svg viewBox="0 0 24 24"><path d="${p}"/></svg>${l}
     ${k==='budget'&&uncat>0?`<span class="navbadge">${uncat}</span>`:''}</button>`;
@@ -2248,6 +2623,24 @@ function bind(){
   document.querySelectorAll('[data-drillsub]').forEach(el=>el.onclick=()=>{/* show sub txs via search */ const k=catById(el.dataset.drillsub);searchQ=cname(k);view='budget';drillCat=null;render();});
   document.querySelectorAll('[data-tx]').forEach(el=>el.onclick=()=>txSheet(el.dataset.tx));
   document.querySelectorAll('[data-editcat]').forEach(el=>el.onclick=(e)=>{e.stopPropagation();catSheet(el.dataset.editcat);});
+  // --- Redesigned Budgets page interactions ---
+  // Expand / collapse a parent group
+  document.querySelectorAll('[data-group]').forEach(el=>el.onclick=()=>{
+    const id=el.dataset.group; if(!bgroupOpen) bgroupOpen=new Set();
+    if(bgroupOpen.has(id)) bgroupOpen.delete(id); else bgroupOpen.add(id); render();
+  });
+  // Kebab menu on a sub-category → edit / view transactions / delete
+  document.querySelectorAll('[data-kebab]').forEach(el=>el.onclick=(e)=>{e.stopPropagation();catKebabSheet(el.dataset.kebab);});
+  // Recent-Activity tab switch
+  document.querySelectorAll('[data-catqtab]').forEach(el=>el.onclick=()=>{catqTab=el.dataset.catqtab;catqExpanded=false;render();});
+  // Show more / less in the categorization queue
+  const qm=document.querySelector('[data-catqmore]'); if(qm)qm.onclick=()=>{catqExpanded=!catqExpanded;render();};
+  // Accept a suggested category
+  document.querySelectorAll('[data-qaccept]').forEach(el=>el.onclick=(e)=>{e.stopPropagation();
+    const id=el.dataset.qaccept, cat=el.dataset.cat; acceptSuggestion(id,cat);});
+  // Change → open the transaction editor to pick manually
+  document.querySelectorAll('[data-qchange]').forEach(el=>el.onclick=(e)=>{e.stopPropagation();txSheet(el.dataset.qchange);});
+  document.querySelectorAll('[data-qrow]').forEach(el=>el.onclick=()=>txSheet(el.dataset.qrow));
   const search=document.getElementById('search');
   if(search)search.oninput=()=>{searchQ=search.value;const cur=document.activeElement;render();const ns=document.getElementById('search');if(ns){ns.focus();ns.value=searchQ;ns.setSelectionRange(searchQ.length,searchQ.length);}};
   document.querySelectorAll('[data-act]').forEach(el=>el.onclick=()=>{
