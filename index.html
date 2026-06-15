@@ -1610,10 +1610,11 @@ function txRow(x){
 
 /* ---- Budget (REDESIGNED: overview + alerts + groups + categorization queue) ---- */
 function budgetStats(){
-  // Whole-portfolio stats for the selected period (not tracking-filtered —
-  // the Budgets page always shows the complete picture).
-  const list=txInPeriod();
-  const tb=totalBudget();
+  // Honors the "All Categories" tracking filter: when a filter is active, every
+  // figure (Total, Spent, Remaining, Forecast, %, donut) reflects only the
+  // tracked categories. With no filter it's the whole portfolio.
+  const list=filterTrackedTx(txInPeriod());
+  const tb=totalBudgetTracked();
   const sp=totalSpent(list);
   const [ps,pe]=periodRange();
   const msDay=86400000;
