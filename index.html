@@ -19,6 +19,9 @@
   --line:#1f2c48; --ink:#eef3ff; --ink2:#9fb0d4; --ink3:#6b7da6;
   --acc:#2ee6a6; --acc2:#19c79a; --warn:#ffb454; --bad:#ff6b81;
   --gold:#e8c069; --shadow:0 18px 40px rgba(0,0,0,.45);
+  /* Brand-supporting accent for budget-creation context (complements the mint
+     green; a calm premium violet in the Linear/Notion spirit). */
+  --acc-budget:#7c5cff; --acc-budget2:#5b3df0;
   --r:18px; --r2:14px;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -305,8 +308,11 @@ body.ar .copybox::after{right:auto;left:8px}
 .chipstat{font-size:9px;font-weight:800;padding:4px 8px;border-radius:8px;margin-top:5px;display:inline-block;white-space:nowrap}
 .nfab{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--acc),var(--acc2));
   border:none;color:#06281d;font-size:27px;font-weight:300;margin-top:-26px;cursor:pointer;
-  box-shadow:0 10px 26px rgba(46,230,166,.45);flex:0 0 auto}
+  box-shadow:0 10px 26px rgba(46,230,166,.45);flex:0 0 auto;transition:box-shadow .2s}
 .nfab:active{transform:scale(.92)}
+/* Budget-creation context: violet FAB that opens "add category" */
+.nfab.budget{background:linear-gradient(135deg,var(--acc-budget),var(--acc-budget2));color:#fff;
+  box-shadow:0 10px 26px rgba(124,92,255,.5)}
 
 /* ===== Redesigned Budgets page ===== */
 .bpage{padding:14px 20px 0;animation:fade .3s ease}
@@ -2134,7 +2140,13 @@ function nav(){
   const btn=([k,l,p])=>`<button class="navb ${view===k?'on':''}" data-go="${k}">
     <svg viewBox="0 0 24 24"><path d="${p}"/></svg>${l}
     ${k==='budget'&&uncat>0?`<span class="navbadge">${uncat}</span>`:''}</button>`;
-  return `<div class="nav">${btn(items[0])}${btn(items[1])}<button class="nfab" data-act="addexpense">+</button>${btn(items[2])}${btn(items[3])}</div>`;
+  const onBudget = view==='budget';
+  // On the Budgets page the FAB creates a category. If the user is drilled into a
+  // parent category, pre-select it as the parent for the new sub-category.
+  const fabBtn = onBudget
+    ? `<button class="nfab budget" data-act="${drillCat?'addsubhere':'addcat'}" title="${t('addCat')}">+</button>`
+    : `<button class="nfab" data-act="addexpense" title="${LANG==='ar'?'إضافة مصروف':'Add expense'}">+</button>`;
+  return `<div class="nav">${btn(items[0])}${btn(items[1])}${fabBtn}${btn(items[2])}${btn(items[3])}</div>`;
 }
 function fab(){ return ''; }
 
@@ -2815,6 +2827,7 @@ function bind(){
     const a=el.dataset.act;
     if(a==='addexpense'){if(!S.cats.length){toast(t('needCat'));catSheet();return;}expenseSheet();}
     if(a==='addcat')catSheet();
+    if(a==='addsubhere')catSheet(null, drillCat);
     if(a==='addsubcat')catSheet(null, el.dataset.parent);
     if(a==='recover')recoverySheet();
     if(a==='exportbackup')exportBackup();
