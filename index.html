@@ -47,9 +47,9 @@ body.ar{font-family:'IBM Plex Sans Arabic',sans-serif}
 .iconbtn:active{transform:scale(.92)}
 .iconbtn.on{color:var(--acc);border-color:var(--acc)}
 /* circular line-icon header buttons (reference style) */
-.tbtns{display:flex;gap:12px;align-items:center}
-.iconbtn.lineic{width:44px;height:44px;border-radius:50%;color:var(--ink);background:transparent;border:1.5px solid var(--line)}
-.iconbtn.lineic svg{width:20px;height:20px}
+.tbtns{display:flex;gap:9px;align-items:center}
+.iconbtn.lineic{width:42px;height:42px;border-radius:50%;color:var(--ink);background:transparent;border:1.5px solid var(--line)}
+.iconbtn.lineic svg{width:19px;height:19px}
 .iconbtn.lineic.on{color:var(--acc);border-color:var(--acc)}
 
 /* period selector */
@@ -1321,6 +1321,7 @@ const ICON = {
   cutlery:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h0c1.1 0 2-.9 2-2V2M5 2v9m0 0v11M19 2c-1.5 0-3 1.5-3 4s1.5 4 3 4v12"/></svg>`,
   spark:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>`,
   alert:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  gear:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
 };
 function header(){
   const pv=S.settings.privacy;
@@ -1333,6 +1334,7 @@ function header(){
         <small>${t('appsub')} <span class="syncpulse ${syncOn?'':'syncoff'}" title="${syncOn?'Live sync on':'Sync off'}"></span></small>
       </div></div>
     <div class="tbtns">
+      <button class="iconbtn lineic ${view==='settings'?'on':''}" data-go="settings" title="settings">${ICON.gear}</button>
       <button class="iconbtn lineic ${pv?'on':''}" data-act="togprivacy" title="privacy">${pv?ICON.eyeoff:ICON.eye}</button>
       <button class="iconbtn lineic" data-act="notifs" title="alerts">${ICON.bell}${hasAlerts?'<span class="ndot"></span>':''}</button>
     </div></div>`;
@@ -2486,10 +2488,7 @@ function alertItems(){
 function notifSheet(){
   const items=alertItems();
   openSheet(`<h3>🔔 ${LANG==='ar'?'التنبيهات':'Notifications'}</h3>
-    ${items.length?items.map(i=>`<div class="insight"><div class="ic" style="background:var(--card2)">${i.ic}</div><div><div class="t">${i.t}</div><div class="d">${i.d}</div></div></div>`).join(''):`<div class="empty"><div class="e">✅</div><p>${LANG==='ar'?'لا توجد تنبيهات — كل شيء على ما يرام':'No alerts — everything looks good'}</p></div>`}
-    <button class="btn btn-ghost" id="notif_settings" style="margin-top:14px;text-align:start">⚙️ ${t('settings')}</button>`);
-  const gs=document.getElementById('notif_settings');
-  if(gs)gs.onclick=()=>{closeSheet();view='settings';drillCat=null;render();};
+    ${items.length?items.map(i=>`<div class="insight"><div class="ic" style="background:var(--card2)">${i.ic}</div><div><div class="t">${i.t}</div><div class="d">${i.d}</div></div></div>`).join(''):`<div class="empty"><div class="e">✅</div><p>${LANG==='ar'?'لا توجد تنبيهات — كل شيء على ما يرام':'No alerts — everything looks good'}</p></div>`}`);
 }
 function periodSheet(){
   openSheet(`<h3>📅 ${LANG==='ar'?'الفترة':'Period'}</h3>
