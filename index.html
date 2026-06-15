@@ -452,6 +452,45 @@ body.ar .copybox::after{right:auto;left:8px}
 .racount{background:var(--card2);color:var(--ink2);font-size:11px;font-weight:800;min-width:20px;height:20px;
   border-radius:999px;display:grid;place-items:center;padding:0 5px}
 .ratab.on .racount{background:rgba(46,230,166,.18);color:var(--acc)}
+/* ===== Transactions page ===== */
+.txtabs{display:flex;gap:8px;background:var(--bg2);border:1px solid var(--line);border-radius:13px;padding:5px;margin-bottom:12px}
+.txtab{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:11px;border:none;background:none;
+  color:var(--ink2);font-family:inherit;font-weight:700;font-size:13px;border-radius:9px;cursor:pointer}
+.txtab.on{background:var(--card);color:var(--acc);border:1px solid var(--line)}
+.txtab.on .racount{background:rgba(46,230,166,.18);color:var(--acc)}
+/* needs-categorization row (two-line: details, then suggestion + accept) */
+.txn{padding:13px 0;border-bottom:1px solid var(--line)}
+.txn:last-child{border-bottom:none}
+.txn-main{display:flex;align-items:center;gap:11px}
+.txn-id{flex:1 1 auto;min-width:0}
+.txn-id .txname{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.txn-id .txmeta{font-size:11.5px;color:var(--ink3);margin-top:2px}
+.txn-amt{flex:0 0 auto;font-weight:700;font-size:14px;white-space:nowrap}
+.txn-cat{display:flex;align-items:center;gap:9px;margin-top:11px;padding-inline-start:51px}
+.txn-sug{flex:1 1 auto;min-width:0}
+.txn-sugl{display:block;font-size:10px;color:var(--ink3);font-weight:600;margin-bottom:4px}
+.txn-selwrap{position:relative}
+.txn-sel{width:100%;appearance:none;-webkit-appearance:none;background:var(--card2);border:1px solid var(--line);
+  border-radius:10px;padding:9px 32px 9px 11px;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer}
+.txn-selchev{position:absolute;inset-inline-end:10px;top:50%;transform:translateY(-50%);pointer-events:none;display:inline-flex;color:var(--ink3)}
+.txn-selchev svg{width:15px;height:15px}
+.txn-accept{flex:0 0 auto;align-self:stretch}
+.qbtn.acc.txn-accept{border:1px solid var(--acc);color:var(--acc);background:transparent;font-weight:700;
+  font-size:13px;padding:0 16px;border-radius:10px;font-family:inherit;cursor:pointer}
+.txn-accept:active{transform:scale(.96)}
+/* done (categorized) row */
+.txd{display:flex;align-items:center;gap:11px;padding:13px 0;border-bottom:1px solid var(--line);cursor:pointer}
+.txd:last-child{border-bottom:none}
+.txd:active{opacity:.7}
+.txd-id{flex:1 1 auto;min-width:0}
+.txd-id .txname{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.txd-sub{display:flex;align-items:center;gap:6px;margin-top:3px;min-width:0}
+.txd-cat{color:var(--acc);font-weight:600;font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}
+.txd-dot{color:var(--ink3);flex:0 0 auto}
+.txd-time{color:var(--ink3);font-size:11.5px;white-space:nowrap;flex:0 0 auto}
+.txd-right{flex:0 0 auto;text-align:end}
+.txd-amt{font-weight:700;font-size:14px;white-space:nowrap}
+.txd-chev{flex:0 0 auto;display:inline-flex;color:var(--ink3)}.txd-chev svg{width:16px;height:16px}
 .qrow{display:flex;align-items:center;gap:11px;padding:13px 0;border-bottom:1px solid var(--line)}
 .qrow:last-child{border-bottom:none}
 .qic{width:42px;height:42px;border-radius:12px;background:var(--card2);display:grid;place-items:center;font-size:19px;flex:0 0 auto}
@@ -786,6 +825,7 @@ let trackExpanded=new Set(), trackDraft=null;
 // Redesigned Budgets page UI state (not persisted): which parent groups are
 // expanded, the active Recent-Activity tab, and whether the queue is expanded.
 let bgroupOpen=null, catqTab='needs', catqExpanded=false;
+let txTab='all'; // Transactions page filter: 'needs' | 'all'
 let groupByMode='parent';
 
 /* ============ SUPABASE CONFIG ============ */
@@ -1163,13 +1203,13 @@ function suggestCat(vendor){
   if(S.vendorMap[v]) return S.vendorMap[v];
   // keyword heuristics
   const rules=[
-    [/stc|mobily|zain|internet|fiber/,'c2a'],
+    [/stc|mobily|zain|internet|fiber|اتصالات|انترنت/,'c2a'],
     [/sec|كهرباء|electric/,'c2b'],
-    [/tamimi|panda|danube|carrefour|lulu|بنده|التميمي|العثيم|hyper/,'c1a'],
-    [/restaurant|kitchen|grill|burger|albaik|البيك|مطعم|shawarma/,'c1b'],
-    [/coffee|barn|starbucks|dose|كافيه|قهوة|بن/,'c1c'],
-    [/uber|careem|كريم|petrol|gas|محطة|aramco|fuel/,'c3'],
-    [/mall|store|amazon|noon|نون|سوق|zara|ikea/,'c4'],
+    [/tamimi|panda|danube|carrefour|lulu|بنده|التميمي|العثيم|hyper|othaim|نستو|nesto/,'c1a'],
+    [/restaurant|kitchen|grill|burger|albaik|البيك|مطعم|shawarma|hunger\s?station|jahez|toyou|the chefz|مطاعم|كودو|kudu|herfy|هرفي/,'c1b'],
+    [/coffee|barn|starbucks|dose|كافيه|قهوة|بن|dunkin|tim hortons|نسبريسو|nespresso/,'c1c'],
+    [/uber|careem|كريم|petrol|gas|محطة|aramco|fuel|sasco|ساسكو|naft|نفط|petromin|بترومين/,'c3'],
+    [/mall|store|amazon|noon|نون|سوق|zara|ikea|ايكيا|jarir|جرير|extra|اكسترا|namshi|نمشي/,'c4'],
   ];
   for(const[re,id]of rules){ if(re.test(v)&&catById(id)) return id; }
   return null;
@@ -1925,19 +1965,93 @@ function catKebabSheet(catId){
 
 /* ---- Transactions page (full list, searchable) ---- */
 function transactionsView(){
+  const needsCount=uncatTx().length;
   return `<div class="view">
     <div class="sectit"><h2>${t('transactions')}</h2></div>
     <div class="searchbar"><input id="search" placeholder="${t('search')}" value="${searchQ}"></div>
-    ${allTxList()}
+    <div class="txtabs">
+      <button class="txtab ${txTab==='needs'?'on':''}" data-txtab="needs">${t('needsCat')} <span class="racount">${needsCount}</span></button>
+      <button class="txtab ${txTab==='all'?'on':''}" data-txtab="all">${LANG==='ar'?'الكل':'All'}</button>
+    </div>
+    ${txList()}
   </div>`;
 }
-function allTxList(){
+// Build the (optionally filtered + searched) transaction list with state-aware rows.
+function txList(){
   let list=[...S.tx].sort((a,b)=>txStamp(b)-txStamp(a));
+  const isUncat=x=>!x.cat||x.cat==='uncat';
+  if(txTab==='needs') list=list.filter(isUncat);
   if(searchQ){const q=searchQ.toLowerCase();list=list.filter(x=>{const c=catById(x.cat);
     return (x.vendor||'').toLowerCase().includes(q)||(c&&cname(c).toLowerCase().includes(q))||
     String(x.amount).includes(q)||x.date.includes(q);});}
-  if(!list.length) return `<div class="empty"><div class="e">🔍</div><p>${t('noTxD')}</p></div>`;
-  return `<div class="tcard">${list.map(txRow).join('')}</div>`;
+  if(!list.length){
+    const msg=txTab==='needs'?t('allCaughtUp'):t('noTxD');
+    const emo=txTab==='needs'?'✅':'🔍';
+    return `<div class="empty"><div class="e">${emo}</div><p>${msg}</p></div>`;
+  }
+  return `<div class="tcard">${list.map(x=>isUncat(x)?txNeedsRow(x):txDoneRow(x)).join('')}</div>`;
+}
+// Relative "time ago" for recent items, falling back to Today/Yesterday/date.
+function relTime(x){
+  const tm=x.time&&/^\d{1,2}:\d{2}/.test(x.time)?x.time:'12:00';
+  const when=new Date(x.date+'T'+tm).getTime();
+  if(isNaN(when)) return fmtDate(x.date);
+  const diff=Date.now()-when;
+  const min=Math.floor(diff/60000), hr=Math.floor(diff/3600000), day=Math.floor(diff/86400000);
+  if(diff<0) return qtimeLabel(x);
+  if(min<60) return LANG==='ar'?(min<=1?'الآن':`قبل ${min} د`):(min<=1?'just now':`${min}m ago`);
+  if(hr<24) return LANG==='ar'?`قبل ${hr} س`:`${hr}h ago`;
+  if(day===1) return LANG==='ar'?'أمس':'Yesterday';
+  if(day<7) return LANG==='ar'?`قبل ${day} ي`:`${day}d ago`;
+  return fmtDate(x.date);
+}
+// <option> list of all leaf categories for the inline suggestion dropdown.
+function leafOptions(selectedId){
+  return S.cats.filter(isLeaf).map(c=>{
+    const parent=c.parent?catById(c.parent):null;
+    const label=parent?`${cname(parent)} › ${cname(c)}`:cname(c);
+    return `<option value="${c.id}" ${c.id===selectedId?'selected':''}>${c.icon} ${label}</option>`;
+  }).join('');
+}
+// Row for a transaction that still needs a category: inline suggestion dropdown
+// (pre-filled with the AI guess) + Accept. Changing the dropdown IS the "change".
+function txNeedsRow(x){
+  let sug=suggestCat(x.vendor); if(sug && !catById(sug)) sug=null;
+  const sc=sug?catById(sug):null;
+  const icon=sc?sc.icon:'❓';
+  return `<div class="txn" data-txnrow="${x.id}">
+    <div class="txn-main">
+      <div class="emoji" style="width:40px;height:40px;font-size:18px">${icon}</div>
+      <div class="txn-id"><div class="txname">${x.vendor||t('expenseV')}</div>
+        <div class="txmeta">${qtimeLabel(x)}</div></div>
+      <div class="txn-amt">−${sar(x.amount)}</div>
+    </div>
+    <div class="txn-cat">
+      <div class="txn-sug">
+        <span class="txn-sugl">${t('suggestedLbl')}</span>
+        <div class="txn-selwrap">
+          <select class="txn-sel" data-txnsel="${x.id}">
+            <option value="uncat" ${!sug?'selected':''} disabled hidden>${t('pickCat')}</option>
+            ${leafOptions(sug)}
+          </select>
+          <span class="txn-selchev">${ICON.chevdown}</span>
+        </div>
+      </div>
+      <button class="qbtn acc txn-accept" data-txnaccept="${x.id}">${t('accept')}</button>
+    </div>
+  </div>`;
+}
+// Row for an already-categorized transaction: green category + time-ago + chevron.
+function txDoneRow(x){
+  const c=catById(x.cat);
+  const icon=c?c.icon:'💸';
+  return `<div class="txd" data-tx="${x.id}">
+    <div class="emoji" style="width:40px;height:40px;font-size:18px;flex:0 0 auto">${icon}</div>
+    <div class="txd-id"><div class="txname">${x.vendor||t('expenseV')}</div>
+      <div class="txd-sub"><span class="txd-cat">${c?cname(c):t('uncategorized')}</span><span class="txd-dot">·</span><span class="txd-time">${relTime(x)}</span></div></div>
+    <div class="txd-right"><div class="txd-amt">−${sar(x.amount)}</div></div>
+    <div class="txd-chev">${ICON.chevright}</div>
+  </div>`;
 }
 
 /* ---- Drill down ---- */
@@ -2821,6 +2935,24 @@ function bind(){
   // Change → open the transaction editor to pick manually
   document.querySelectorAll('[data-qchange]').forEach(el=>el.onclick=(e)=>{e.stopPropagation();txSheet(el.dataset.qchange);});
   document.querySelectorAll('[data-qrow]').forEach(el=>el.onclick=()=>txSheet(el.dataset.qrow));
+  // --- Transactions page: filter tabs, inline suggestion dropdown, Accept ---
+  document.querySelectorAll('[data-txtab]').forEach(el=>el.onclick=()=>{txTab=el.dataset.txtab;render();});
+  // Changing the inline dropdown updates that row's suggested selection (no commit yet).
+  document.querySelectorAll('[data-txnsel]').forEach(el=>{
+    el.onclick=e=>e.stopPropagation();
+    el.onchange=e=>{ e.stopPropagation(); /* selection read on Accept */ };
+  });
+  // Accept commits whatever category is currently chosen in the row's dropdown.
+  document.querySelectorAll('[data-txnaccept]').forEach(el=>el.onclick=(e)=>{
+    e.stopPropagation();
+    const id=el.dataset.txnaccept;
+    const sel=document.querySelector(`[data-txnsel="${id}"]`);
+    const cat=sel?sel.value:null;
+    if(!cat||cat==='uncat'){ toast(t('pickCat')); return; }
+    acceptSuggestion(id,cat);
+  });
+  // Tapping a needs-categorization row (outside its controls) opens the full editor.
+  document.querySelectorAll('[data-txnrow]').forEach(el=>el.onclick=()=>txSheet(el.dataset.txnrow));
   const search=document.getElementById('search');
   if(search)search.oninput=()=>{searchQ=search.value;const cur=document.activeElement;render();const ns=document.getElementById('search');if(ns){ns.focus();ns.value=searchQ;ns.setSelectionRange(searchQ.length,searchQ.length);}};
   document.querySelectorAll('[data-act]').forEach(el=>el.onclick=()=>{
