@@ -332,6 +332,36 @@ body.ar .copybox::after{right:auto;left:8px}
 .bxls button:active{transform:scale(.98)}
 .bxls .bxic{flex:0 0 auto;display:inline-flex;color:var(--ink2)}
 .bxls .bxic svg{width:18px;height:18px}
+/* Budget Overview hide button + collapsed summary strip */
+.ovtop{position:relative}
+.ovhide{position:absolute;inset-inline-end:0;top:50%;transform:translateY(-50%);width:30px;height:30px;border-radius:9px;
+  border:1px solid var(--line);background:transparent;color:var(--ink3);display:grid;place-items:center;cursor:pointer}
+.ovhide svg{width:16px;height:16px}
+.ovhide:active{transform:translateY(-50%) scale(.92)}
+.ovstrip{display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--card);border:1px solid var(--line);
+  border-radius:16px;padding:13px 15px;margin-bottom:14px;cursor:pointer;font-size:13px}
+.ovstrip:active{transform:scale(.99)}
+.ovstrip .ovs-i{display:inline-flex;color:var(--ink3);flex:0 0 auto}.ovstrip .ovs-i svg{width:15px;height:15px}
+.ovstrip .ovs-seg{display:inline-flex;align-items:center;gap:5px;min-width:0}
+.ovstrip .ovs-k{color:var(--ink3);font-weight:500}
+.ovstrip .ovs-seg b{font-weight:700;color:var(--ink)}
+.ovstrip .ovs-dot{color:var(--ink3)}
+.ovstrip .ovs-eye{margin-inline-start:auto;display:inline-flex;color:var(--ink3);flex:0 0 auto}.ovstrip .ovs-eye svg{width:16px;height:16px}
+/* Group-by toggle (tappable) */
+.gbtoggle{display:inline-flex;align-items:center;gap:6px;background:var(--card2);border:1px solid var(--line);
+  border-radius:10px;padding:7px 11px;font-family:inherit;font-size:12px;color:var(--ink2);font-weight:600;cursor:pointer}
+.gbtoggle:active{transform:scale(.96)}
+.gbtoggle .gbl{color:var(--ink3)}
+.gbtoggle b{color:var(--ink);font-weight:700}
+.gbtoggle .gbchev{display:inline-flex;color:var(--ink3)}.gbtoggle .gbchev svg{width:14px;height:14px}
+/* Flat leaf list (Group by: Sub-category) */
+.leaflist{padding-bottom:4px}
+.leafrow{display:flex;align-items:center;gap:9px;padding:11px 0;border-top:1px solid var(--line)}
+.leafrow:first-child{border-top:none}
+.leafrow .kidnm{flex:1 1 auto;min-width:48px}
+.leafrow .kidmid{flex:0 0 104px;min-width:0}
+.rollupnote{background:var(--card2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;
+  color:var(--ink2);font-size:12.5px;line-height:1.5;margin:6px 0 4px}
 
 /* overview card */
 .ovcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px 18px;margin-bottom:14px}
@@ -540,7 +570,7 @@ const DEFAULT = {
   // trackFilter: null = track everything (default). Otherwise an array of
   // category ids the user wants to focus on — can mix top-level (parent)
   // ids and individual leaf/child ids. See trackedLeafIds() for expansion.
-  settings:{privacy:false,hijri:false,trackFilter:null},
+  settings:{privacy:false,hijri:false,trackFilter:null,hideDonut:false,groupBy:'parent'},
   // Tracks ids the user actually changed locally, by bucket. Push only sends
   // these — never a full snapshot — so a stale session with an empty dirty
   // set can push without overwriting anything another session changed.
@@ -552,6 +582,18 @@ let S = load();
 if(!S.dirty) S.dirty={cats:[],income:[],vendorMap:[],txcat:[],settings:[]}; // migrate older local data
 if(!S.dirty.settings) S.dirty.settings=[]; // migrate data saved before the settings bucket existed
 if(S.settings && S.settings.trackFilter===undefined) S.settings.trackFilter=null; // migrate older local data
+if(S.settings && S.settings.hideDonut===undefined) S.settings.hideDonut=false; // Budget Overview ("budget donut") visibility
+if(S.settings && S.settings.groupBy===undefined) S.settings.groupBy='parent'; // Budget Groups grouping: 'parent' | 'sub'
+// Data integrity: a parent category that HAS leaf children must never carry its
+// own budget amount — its total is the sum of its children. Childless parents
+// (true leaves) keep their budget. Runs once on load and is also enforced in the
+// category editor and importer.
+function enforceParentBudgets(){
+  let changed=false;
+  S.cats.forEach(c=>{ if(c.parent==null && S.cats.some(k=>k.parent===c.id) && (c.budget||0)!==0){ c.budget=0; changed=true; } });
+  return changed;
+}
+if(enforceParentBudgets()) saveLocal();
 function load(){ try{ const r=localStorage.getItem('mizan_data'); return r?JSON.parse(r):structuredClone(DEFAULT);}catch(e){return structuredClone(DEFAULT);} }
 function save(){ localStorage.setItem('mizan_data',JSON.stringify(S)); scheduleCloudPush(); }
 
@@ -985,10 +1027,12 @@ function txInPeriod(){
   const[s,e]=periodRange();
   return S.tx.filter(x=>{const d=new Date(x.date);return d>=s&&d<=e;});
 }
-// effective budget of a top cat = own budget + children budgets
+// effective budget of a top cat = sum of children budgets (a parent with
+// children never has its own budget — see enforceParentBudgets); a childless
+// top-level category is itself a leaf and uses its own budget.
 function catBudget(c){
   const kids=childrenOf(c.id);
-  if(kids.length) return kids.reduce((a,k)=>a+(k.budget||0),0)+(c.budget||0);
+  if(kids.length) return kids.reduce((a,k)=>a+(k.budget||0),0);
   return c.budget||0;
 }
 function catSpent(catId,list){
@@ -1599,10 +1643,25 @@ function budgetView(){
       <button data-act="xltemplate"><span class="bxic">${ICON.download}</span>${t('downloadTemplate')}</button>
     </div>
     <input type="file" id="xlfile" accept=".xlsx,.xls,.csv" style="display:none">
-    ${topCats().length?budgetOverviewCard(st):''}
+    ${topCats().length?(S.settings.hideDonut?budgetSummaryStrip(st):budgetOverviewCard(st)):''}
     ${alertCardHTML2(st)}
     ${topCats().length?budgetGroupsCard(st):emptyCats()}
     ${categorizationCard()}
+  </div>`;
+}
+
+// Compact one-line summary shown in place of the Budget Overview card when the
+// "budget donut" is hidden. Tapping it re-shows the full card.
+function budgetSummaryStrip(st){
+  const pv=S.settings.privacy?'bal-hidden':'';
+  return `<div class="ovstrip" data-act="showdonut" title="${LANG==='ar'?'إظهار النظرة العامة':'Show budget overview'}">
+    <span class="ovs-i">${ICON.info}</span>
+    <span class="ovs-seg"><span class="ovs-k">${t('totalBudget')}</span><b class="${pv}">${sar(st.tb)}</b></span>
+    <span class="ovs-dot">·</span>
+    <span class="ovs-seg"><span class="ovs-k">${t('spent')}</span><b class="${pv}">${sar(st.sp)}</b></span>
+    <span class="ovs-dot">·</span>
+    <span class="ovs-seg"><b class="${pv}" style="color:${st.rem<0?'var(--bad)':'var(--acc)'}">${sar(st.rem)}</b> <span class="ovs-k">${t('left')}</span></span>
+    <span class="ovs-eye">${ICON.eye}</span>
   </div>`;
 }
 
@@ -1616,7 +1675,8 @@ function budgetOverviewCard(st){
   const momCol=momFlat?'var(--ink3)':momUp?'var(--bad)':'var(--acc)';
   const momArrow=momFlat?'':momUp?ICON.arrowup:ICON.arrowdown;
   return `<div class="ovcard">
-    <div class="ovtop"><span class="t">${t('budgetOverview')}</span><span class="iic">${ICON.info}</span></div>
+    <div class="ovtop"><span class="t">${t('budgetOverview')}</span><span class="iic">${ICON.info}</span>
+      <button class="ovhide" data-act="hidedonut" title="${LANG==='ar'?'إخفاء':'Hide'}">${ICON.eyeoff}</button></div>
     <div class="ovrow">
       <div class="ovleft">
         <div class="k">${t('totalBudget')}</div>
@@ -1669,15 +1729,53 @@ function alertCardHTML2(st){
 }
 
 function budgetGroupsCard(st){
-  // Initialize the open-set on first render: open the first group by default.
-  if(bgroupOpen===null){ bgroupOpen=new Set(); const first=topCats()[0]; if(first) bgroupOpen.add(first.id); }
-  const groups=topCats().map(c=>budgetGroupRow(c,st.list)).join('');
+  const mode=S.settings.groupBy==='sub'?'sub':'parent';
+  const modeLabel=mode==='sub'?(LANG==='ar'?'الفئة الفرعية':'Sub-category'):t('parentGroup');
+  let bodyHTML;
+  if(mode==='sub'){
+    bodyHTML=subCatRows(st.list);
+  }else{
+    // Initialize the open-set on first render: open the first group by default.
+    if(bgroupOpen===null){ bgroupOpen=new Set(); const first=visibleTopCats()[0]; if(first) bgroupOpen.add(first.id); }
+    bodyHTML=visibleTopCats().map(c=>budgetGroupRow(c,st.list)).join('') || emptyTrackedNote();
+  }
   return `<div class="bgroups">
     <div class="bgh"><span class="t">${t('budgetGroups')}</span>
-      <span class="gb">${t('groupBy')}: <b>${t('parentGroup')}</b>
-        <svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></span></div>
-    ${groups}
+      <button class="gbtoggle" data-act="groupby"><span class="gbl">${t('groupBy')}:</span> <b>${modeLabel}</b>
+        <span class="gbchev">${ICON.chevdown}</span></button></div>
+    ${bodyHTML}
   </div>`;
+}
+// Top-level categories to show, honoring the "All Categories" tracking filter.
+function visibleTopCats(){ return topCatsTracked(); }
+function emptyTrackedNote(){
+  return `<div class="empty" style="padding:26px 10px"><div class="e">🗂️</div><p>${LANG==='ar'?'لا توجد فئات ضمن هذا التصفية.':'No categories match this filter.'}</p></div>`;
+}
+// Flat list of all LEAF categories (childless top-level cats + every child),
+// honoring the tracking filter. Used by "Group by: Sub-category".
+function subCatRows(list){
+  const tracked=trackedLeafIds();
+  const leaves=S.cats.filter(isLeaf).filter(c=>tracked===null||tracked.has(c.id));
+  if(!leaves.length) return emptyTrackedNote();
+  const pv=S.settings.privacy?'bal-hidden':'';
+  // Sort by parent name then own name, so siblings cluster together.
+  const parentName=c=>{ const p=c.parent?catById(c.parent):null; return p?cname(p):cname(c); };
+  leaves.sort((a,b)=>parentName(a).localeCompare(parentName(b))||cname(a).localeCompare(cname(b)));
+  const rows=leaves.map(k=>{
+    const kb=k.budget||0, ks=catSpent(k.id,list);
+    const ku=kb>0?(ks/kb)*100:(ks>0?100:0);
+    const parent=k.parent?catById(k.parent):null;
+    const sub=parent?cname(parent):(k.desc||t('category'));
+    return `<div class="leafrow">
+      <div class="kidic">${k.icon}</div>
+      <div class="kidnm"><div class="n">${cname(k)}</div><div class="s">${sub}</div></div>
+      <div class="kidmid"><div class="kidamt"><b class="${pv}">${sar(ks)}</b> <span>/ ${fmt(kb)}</span></div>
+        <div class="gbar"><div style="width:${Math.min(100,ku)}%;background:${barColor(ku)}"></div></div></div>
+      <div class="kidpct" style="color:${barColor(ku)}">${kb>0?Math.round(ku):0}%</div>
+      <div class="kidkebab" data-kebab="${k.id}">⋮</div>
+    </div>`;
+  }).join('');
+  return `<div class="leaflist">${rows}</div>`;
 }
 
 function statusPillStyle(u){
@@ -1689,12 +1787,14 @@ function barColor(u){ return u>=100?'var(--bad)':u>=80?'var(--warn)':'var(--acc)
 
 function budgetGroupRow(c,list){
   const pv=S.settings.privacy?'bal-hidden':'';
-  const kids=childrenOf(c.id);
-  const b=catBudget(c), s=catSpent(c.id,list);
+  const tracked=trackedLeafIds();
+  const allKids=childrenOf(c.id);
+  const kids=tracked===null?allKids:allKids.filter(k=>tracked.has(k.id));
+  const b=catBudgetTracked(c), s=catSpentTracked(c,list);
   const u=b>0?(s/b)*100:(s>0?100:0);
   const open=bgroupOpen&&bgroupOpen.has(c.id);
   const pill=statusPillStyle(u);
-  const sub=c.desc||(kids.length?`${kids.length} ${t('subcats')}`:t('category'));
+  const sub=c.desc||(allKids.length?`${allKids.length} ${t('subcats')}`:t('category'));
   const kidsHTML=kids.map(k=>{
     const kb=k.budget||0, ks=catSpent(k.id,list);
     const ku=kb>0?(ks/kb)*100:(ks>0?100:0);
@@ -2353,6 +2453,9 @@ function catSheet(editId, presetParent){
   const c=editId?catById(editId):null;
   const parents=topCats().filter(p=>!editId||p.id!==editId);
   const selParent = c ? c.parent : (presetParent||'');
+  // A category that has children is a PARENT and must not hold its own budget —
+  // its total rolls up from its children. Hide the budget field in that case.
+  const hasKids = editId ? childrenOf(editId).length>0 : false;
   openSheet(`<h3>${editId?t('editCat'):t('addCat')}</h3>
     <label>${t('catName')} (EN)</label><input id="cn_en" value="${c?c.name.en:''}" placeholder="Food">
     <label>${t('catName')} (عربي)</label><input id="cn_ar" value="${c?c.name.ar:''}" placeholder="الطعام" dir="rtl">
@@ -2361,7 +2464,9 @@ function catSheet(editId, presetParent){
     <label>${t('parent')}</label>
     <select id="parent"><option value="">${t('none')}</option>
       ${parents.map(p=>`<option value="${p.id}" ${selParent===p.id?'selected':''}>${p.icon} ${cname(p)}</option>`).join('')}</select>
-    <label>${t('budgetAmt')} (SAR)</label><input id="cbud" type="number" inputmode="decimal" value="${c?c.budget||'':''}" placeholder="0">
+    ${hasKids
+      ? `<div class="rollupnote">${LANG==='ar'?'هذه فئة رئيسية — تُحتسب ميزانيتها تلقائياً من فئاتها الفرعية.':'This is a parent category — its budget is the sum of its sub-categories.'}</div>`
+      : `<label>${t('budgetAmt')} (SAR)</label><input id="cbud" type="number" inputmode="decimal" value="${c?c.budget||'':''}" placeholder="0">`}
     <button class="btn btn-pri" id="savecat">${t('save')}</button>
     ${editId?`<button class="btn btn-bad" id="delcat">${t('delete')}</button>`:''}`);
   let picked=c?c.icon:'🍔';
@@ -2388,12 +2493,15 @@ function catSheet(editId, presetParent){
   document.getElementById('savecat').onclick=()=>{
     const en=document.getElementById('cn_en').value.trim(),ar=document.getElementById('cn_ar').value.trim();
     if(!en&&!ar){toast(t('catName'));return;}
+    const budEl=document.getElementById('cbud');
     const data={name:{en:en||ar,ar:ar||en},icon:picked,
-      parent:document.getElementById('parent').value||null,budget:parseFloat(document.getElementById('cbud').value)||0};
+      parent:document.getElementById('parent').value||null,budget:budEl?(parseFloat(budEl.value)||0):(c?c.budget||0:0)};
     let savedId;
     if(editId){Object.assign(c,data);savedId=editId;}else{savedId=uid();S.cats.push({id:savedId,...data});}
     markDirty('cats',savedId);
     const moved=reconcileLeafAssignments();
+    // A parent that just gained a child must drop its own budget (rolls up from children).
+    if(enforceParentBudgets()){ topCats().forEach(p=>{ if(childrenOf(p.id).length) markDirty('cats',p.id); }); }
     save();closeSheet();render();
     toast(moved?leafReconcileMsg(moved):t('savedCat'));
   };
@@ -2606,6 +2714,8 @@ async function handleBudgetUpload(file){
     const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''});
     if(!rows.length){toast(LANG==='ar'?'الملف فارغ':'File is empty');return;}
     const res=processBudgetRows(rows);
+    // Any parent that ended up with children must drop its own budget.
+    if(enforceParentBudgets()){ topCats().forEach(p=>{ if(childrenOf(p.id).length) markDirty('cats',p.id); }); }
     save();render();
     toast(`✅ ${res.created} ${LANG==='ar'?'أُضيفت':'created'} · ${res.updated} ${LANG==='ar'?'حُدّثت':'updated'}${res.skipped?` · ${res.skipped} ${LANG==='ar'?'تُخطيت':'skipped'}`:''}`);
   }catch(e){toast('❌ '+(e&&e.message?e.message:'Upload failed'));}
@@ -2716,6 +2826,9 @@ function bind(){
     if(a==='notifs')notifSheet();
     if(a==='periodpick')periodSheet();
     if(a==='trackpick'){trackDraft=null;trackSheet();}
+    if(a==='hidedonut'){ S.settings.hideDonut=true; markDirty('settings','main'); save(); render(); }
+    if(a==='showdonut'){ S.settings.hideDonut=false; markDirty('settings','main'); save(); render(); }
+    if(a==='groupby'){ S.settings.groupBy = S.settings.groupBy==='sub'?'parent':'sub'; markDirty('settings','main'); save(); render(); }
     if(a==='clearcats'){ confirmSheet(
       LANG==='ar'?'حذف كل الفئات؟':'Clear all categories?',
       LANG==='ar'?'سيتم حذف كل الفئات التجريبية. عملياتك تبقى لكنها ستصبح غير مصنّفة.':'All sample categories will be removed. Your transactions stay but become uncategorized.',
