@@ -46,6 +46,11 @@ body.ar{font-family:'IBM Plex Sans Arabic',sans-serif}
   font-size:15px;cursor:pointer;transition:.15s}
 .iconbtn:active{transform:scale(.92)}
 .iconbtn.on{color:var(--acc);border-color:var(--acc)}
+/* circular line-icon header buttons (reference style) */
+.tbtns{display:flex;gap:12px;align-items:center}
+.iconbtn.lineic{width:44px;height:44px;border-radius:50%;color:var(--ink);background:transparent;border:1.5px solid var(--line)}
+.iconbtn.lineic svg{width:20px;height:20px}
+.iconbtn.lineic.on{color:var(--acc);border-color:var(--acc)}
 
 /* period selector */
 .period{margin:6px 20px 0;display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;
@@ -231,7 +236,7 @@ body.ar .copybox::after{right:auto;left:8px}
 
 /* ===== Redesigned home (matches approved mockup) ===== */
 .iconbtn{position:relative}
-.ndot{position:absolute;top:8px;inset-inline-end:9px;width:7px;height:7px;border-radius:50%;background:var(--acc)}
+.ndot{position:absolute;top:9px;inset-inline-end:10px;width:8px;height:8px;border-radius:50%;background:var(--acc);border:1.5px solid var(--bg)}
 .periodpill{display:inline-flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
   border-radius:999px;padding:9px 16px;font-size:13px;font-weight:600;color:var(--ink);font-family:inherit;
   cursor:pointer;margin:6px 0 0}
@@ -267,16 +272,22 @@ body.ar .copybox::after{right:auto;left:8px}
 .crail{flex:0 0 88px;display:flex;flex-direction:column;justify-content:center;gap:11px}
 .rk{font-size:9.5px;color:var(--ink3);font-weight:700;line-height:1.3}
 .rv{font-size:14px;font-weight:800;margin-top:2px}
-.acard{background:var(--card);border:1px solid rgba(255,107,129,.35);border-radius:18px;padding:15px;margin-bottom:14px;cursor:pointer}
-.arow{display:flex;gap:12px;align-items:flex-start}
-.aic{width:40px;height:40px;border-radius:12px;background:rgba(255,107,129,.15);display:grid;place-items:center;font-size:19px;flex:0 0 auto}
-.at{color:var(--bad);font-weight:800;font-size:14px}
-.ad{font-size:12.5px;color:var(--ink2);margin-top:3px;line-height:1.45}
-.aarr{margin-inline-start:auto;color:var(--ink3);font-size:20px}
+.acard{background:var(--card);border:1px solid rgba(255,107,129,.35);border-radius:18px;padding:16px;margin-bottom:14px;cursor:pointer}
+.ahead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.aleft{display:flex;gap:12px;align-items:flex-start;min-width:0}
+.aic{width:40px;height:40px;border-radius:12px;background:rgba(255,107,129,.15);display:grid;place-items:center;flex:0 0 auto;color:var(--bad)}
+.aic svg{width:20px;height:20px}
+.at{color:var(--bad);font-weight:800;font-size:15px}
+.ad{font-size:13px;color:var(--ink2);margin-top:3px;line-height:1.45}
+.aviewall{flex:0 0 auto;color:var(--acc);font-size:13px;font-weight:700;display:flex;align-items:center;gap:3px;white-space:nowrap;cursor:pointer}
+.avchev{display:inline-flex}.avchev svg{width:15px;height:15px}
 .acl{font-size:11px;color:var(--ink3);margin:11px 0 7px;font-weight:600}
-.acchips{display:flex;gap:8px;flex-wrap:wrap}
-.acchip{background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:7px 10px;font-size:11.5px;font-weight:600}
-.acchip b{color:var(--bad)}
+.acchips{display:flex;gap:9px;flex-wrap:wrap;margin-top:13px}
+.acchip{display:inline-flex;align-items:center;gap:7px;background:var(--card2);border:1px solid var(--line);border-radius:11px;padding:9px 12px;font-size:12.5px;font-weight:600;min-width:0;justify-content:flex-start;flex:0 1 auto}
+.acchip .acci{display:inline-flex;color:var(--ink2);flex:0 0 auto}.acchip .acci svg{width:15px;height:15px}
+.acchip .acce{font-size:14px;flex:0 0 auto;line-height:1}
+.acchip .accn{white-space:nowrap;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
+.acchip b{color:var(--bad);flex:0 0 auto;padding-inline-start:2px}
 .tcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:2px 15px;margin-bottom:14px}
 .trow{display:flex;align-items:center;gap:11px;padding:13px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .trow:last-child{border-bottom:none}
@@ -299,42 +310,55 @@ body.ar .copybox::after{right:auto;left:8px}
 
 /* ===== Redesigned Budgets page ===== */
 .bpage{padding:14px 20px 0;animation:fade .3s ease}
-.bhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
-.bhead h2{font-size:22px;margin:0;font-weight:800;letter-spacing:-.4px}
-.bhead a{color:var(--acc);font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:5px}
-.bfilters{display:flex;gap:10px;margin-bottom:12px}
-.bfilters .periodpill{flex:1;justify-content:space-between;margin:0}
-.bxls{display:flex;gap:10px;margin-bottom:16px}
-.bxls button{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--card);
-  border:1px solid var(--line);border-radius:14px;padding:13px;font-size:13px;font-weight:600;color:var(--ink);
-  font-family:inherit;cursor:pointer}
+.bhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;margin-top:4px}
+.bhead h2{font-size:24px;margin:0;font-weight:800;letter-spacing:-.5px}
+.bhead a{color:var(--acc);font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:7px}
+.bhead .addic{display:inline-flex}.bhead .addic svg{width:18px;height:18px;stroke:var(--acc)}
+.bfilters{display:flex;gap:11px;margin-bottom:11px}
+.fpill{flex:1;display:flex;align-items:center;gap:8px;background:var(--card);border:1px solid var(--line);
+  border-radius:14px;padding:14px 13px;font-family:inherit;font-size:14px;font-weight:600;color:var(--ink);cursor:pointer;min-width:0}
+.fpill:active{transform:scale(.98)}
+.fpill.active{border-color:var(--acc)}
+.fpill .fic{flex:0 0 auto;display:inline-flex;color:var(--ink2)}
+.fpill .fic svg{width:17px;height:17px}
+.fpill.active .fic{color:var(--acc)}
+.fpill .flbl{flex:1;text-align:start;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fpill .fchev{flex:0 0 auto;display:inline-flex;color:var(--ink3)}
+.fpill .fchev svg{width:16px;height:16px}
+.bxls{display:flex;gap:11px;margin-bottom:16px}
+.bxls button{flex:1;display:flex;align-items:center;justify-content:center;gap:9px;background:var(--card);
+  border:1px solid var(--line);border-radius:14px;padding:15px 8px;font-size:14px;font-weight:600;color:var(--ink);
+  font-family:inherit;cursor:pointer;white-space:nowrap}
 .bxls button:active{transform:scale(.98)}
-.bxls svg{width:17px;height:17px;stroke:var(--ink2);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bxls .bxic{flex:0 0 auto;display:inline-flex;color:var(--ink2)}
+.bxls .bxic svg{width:18px;height:18px}
 
 /* overview card */
-.ovcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px;margin-bottom:14px}
-.ovtop{display:flex;align-items:center;gap:6px;margin-bottom:16px}
-.ovtop .t{font-size:15px;font-weight:700}
-.ovtop .i{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--ink3);color:var(--ink3);
-  font-size:10px;font-weight:800;display:grid;place-items:center;font-style:italic}
-.ovgrid{display:flex;align-items:center;gap:14px}
-.ovleft{flex:1 1 auto;min-width:0;overflow:hidden}
-.ovleft .k{color:var(--ink2);font-size:11.5px;font-weight:600;white-space:nowrap}
-.ovleft .big{font-size:25px;font-weight:800;letter-spacing:-1px;margin:3px 0 1px;white-space:nowrap}
+.ovcard{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:20px 18px;margin-bottom:14px}
+.ovtop{display:flex;align-items:center;gap:8px;margin-bottom:18px}
+.ovtop .t{font-size:17px;font-weight:700}
+.ovtop .iic{display:inline-flex;color:var(--ink3)}
+.ovtop .iic svg{width:16px;height:16px}
+.ovrow{display:flex;align-items:center;gap:6px}
+.ovleft{flex:0 0 37%;min-width:0;overflow:hidden}
+.ovleft .k{color:var(--ink2);font-size:11.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ovleft .big{font-size:20px;font-weight:800;letter-spacing:-.7px;margin:4px 0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .ovleft .sub{color:var(--ink3);font-size:11.5px;white-space:nowrap}
-.ovmom{display:flex;align-items:center;gap:5px;margin-top:11px;font-size:11.5px;font-weight:600;color:var(--ink2);
-  border-top:1px solid var(--line);padding-top:11px;white-space:nowrap}
-.ovdonut{flex:0 0 96px;width:96px;height:96px;position:relative}
-.ovdonut svg{width:100%;height:100%}
+.ovmom{margin-top:12px;border-top:1px solid var(--line);padding-top:11px}
+.ovmoml{display:block;color:var(--ink2);font-size:11px;font-weight:500;white-space:nowrap;margin-bottom:3px}
+.ovmomv{display:inline-flex;align-items:center;gap:3px;font-size:13px;font-weight:700;white-space:nowrap}
+.ovmoma{display:inline-flex}.ovmoma svg{width:13px;height:13px}
+.ovdonut{flex:1 1 auto;display:flex;align-items:center;justify-content:center;position:relative;min-width:0;height:118px}
+.ovdonut svg{width:118px;height:118px;display:block}
 .ovdnum{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
-.ovdnum b{font-size:22px;font-weight:800;letter-spacing:-1px}
-.ovdnum span{font-size:10px;color:var(--ink2);font-weight:600;margin-top:-2px}
-.ovright{flex:0 0 auto;min-width:0;display:flex;flex-direction:column;gap:0;margin-top:14px;border-top:1px solid var(--line);padding-top:6px}
-.ovright>div{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:8px 0;
-  border-bottom:1px solid var(--line);white-space:nowrap}
-.ovright>div:last-child{border-bottom:none}
-.ovright .rk{flex:0 0 auto;font-size:12px;color:var(--ink2);font-weight:600}
-.ovright b{font-weight:700;font-size:14px;color:var(--ink)}
+.ovdnum b{font-size:25px;font-weight:800;letter-spacing:-1px;line-height:1}
+.ovdnum span{font-size:11.5px;color:var(--ink2);font-weight:500;margin-top:3px}
+.ovright{flex:0 0 33%;min-width:0;display:flex;flex-direction:column}
+.ovrr{display:flex;flex-direction:column;align-items:flex-end;padding:8px 0;border-bottom:1px solid var(--line);white-space:nowrap}
+.ovrr:first-child{padding-top:0}
+.ovrr:last-child{border-bottom:none;padding-bottom:0}
+.ovrr .rk{font-size:11.5px;color:var(--ink2);font-weight:500;margin-bottom:3px}
+.ovrr .rv{font-weight:700;font-size:13.5px;color:var(--ink)}
 
 /* budget groups */
 .bgroups{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:6px 16px 10px;margin-bottom:14px}
@@ -458,7 +482,7 @@ const T = {
     recentlyCat:"Recently Categorized",accept:"Accept",change:"Change",suggestedLbl:"Suggested",
     showMore:"Show more",showLess:"Show less",subcats:"subcategories",uploadExcel:"Upload Excel Budget",
     downloadTemplate:"Download Template",allCaughtUp:"All caught up — nothing to categorize.",
-    catUpdated:"Category updated",editCat2:"Edit",deleteCat2:"Delete",moveTx:"View transactions"},
+    catUpdated:"Category updated",editCat2:"Edit",deleteCat2:"Delete",moveTx:"View transactions",usedCap:"Used"},
   ar:{appsub:"الميزانية الشخصية",dash:"الرئيسية",budget:"الميزانية",add:"إضافة",reports:"الرؤى",
     settings:"الإعدادات",totalBudget:"إجمالي الميزانية",spent:"المصروف",remaining:"المتبقي",
     overspend:"تجاوز",compliance:"ضمن الحد",categories:"الفئات",recent:"الأحدث",
@@ -491,7 +515,7 @@ const T = {
     recentlyCat:"صُنّفت مؤخراً",accept:"قبول",change:"تغيير",suggestedLbl:"مقترح",
     showMore:"عرض المزيد",showLess:"عرض أقل",subcats:"فئة فرعية",uploadExcel:"رفع ميزانية Excel",
     downloadTemplate:"تنزيل القالب",allCaughtUp:"كل شيء مصنّف — لا يوجد ما يحتاج تصنيفاً.",
-    catUpdated:"تم تحديث الفئة",editCat2:"تعديل",deleteCat2:"حذف",moveTx:"عرض العمليات"}
+    catUpdated:"تم تحديث الفئة",editCat2:"تعديل",deleteCat2:"حذف",moveTx:"عرض العمليات",usedCap:"مستخدم"}
 };
 let LANG = localStorage.getItem('mizan_lang') || 'en';
 const t = k => (T[LANG][k] ?? k);
@@ -1278,6 +1302,26 @@ function render(){
   app.innerHTML = header() + periodBar() + viewHTML() + nav() + fab();
   bind();
 }
+/* ---- Inline line-icons (stroke style, to match reference) ---- */
+const ICON = {
+  eye:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>`,
+  eyeoff:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-6.5 0-10-7-10-7a18.5 18.5 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c6.5 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="2" y1="2" x2="22" y2="22"/></svg>`,
+  bell:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>`,
+  calendar:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+  folder:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`,
+  chevdown:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>`,
+  upload:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
+  download:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="3" x2="12" y2="15"/></svg>`,
+  plus:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  info:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`,
+  arrowdown:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>`,
+  arrowup:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>`,
+  chevright:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>`,
+  phone:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="2" width="10" height="20" rx="2"/><line x1="11" y1="18" x2="13" y2="18"/></svg>`,
+  cutlery:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h0c1.1 0 2-.9 2-2V2M5 2v9m0 0v11M19 2c-1.5 0-3 1.5-3 4s1.5 4 3 4v12"/></svg>`,
+  spark:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>`,
+  alert:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+};
 function header(){
   const pv=S.settings.privacy;
   const syncOn=SB.enabled&&SB.url&&SB.anonKey;
@@ -1289,9 +1333,8 @@ function header(){
         <small>${t('appsub')} <span class="syncpulse ${syncOn?'':'syncoff'}" title="${syncOn?'Live sync on':'Sync off'}"></span></small>
       </div></div>
     <div class="tbtns">
-      <button class="iconbtn ${pv?'on':''}" data-act="togprivacy" title="privacy">${pv?'🙈':'👁'}</button>
-      <button class="iconbtn" data-act="notifs" title="alerts">🔔${hasAlerts?'<span class="ndot"></span>':''}</button>
-      <button class="iconbtn ${view==='settings'?'on':''}" data-go="settings" title="settings"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+      <button class="iconbtn lineic ${pv?'on':''}" data-act="togprivacy" title="privacy">${pv?ICON.eyeoff:ICON.eye}</button>
+      <button class="iconbtn lineic" data-act="notifs" title="alerts">${ICON.bell}${hasAlerts?'<span class="ndot"></span>':''}</button>
     </div></div>`;
 }
 function periodBar(){
@@ -1544,14 +1587,14 @@ function budgetView(){
   const trackLbl=isTracking()?trackFilterLabel():t('allCats');
   return `<div class="bpage">
     <div class="bhead"><h2>${LANG==='ar'?'الميزانيات':'Budgets'}</h2>
-      <a data-act="addcat">+ ${t('addCat')}</a></div>
+      <a data-act="addcat"><span class="addic">${ICON.plus}</span>${t('addCat')}</a></div>
     <div class="bfilters">
-      <button class="periodpill" data-act="periodpick">📅 ${periodLabel()} <span style="color:var(--ink3)">▾</span></button>
-      <button class="periodpill trackpill ${isTracking()?'active':''}" data-act="trackpick">🗂️ ${trackLbl} <span style="color:var(--ink3)">▾</span></button>
+      <button class="fpill" data-act="periodpick"><span class="fic">${ICON.calendar}</span><span class="flbl">${periodLabel()}</span><span class="fchev">${ICON.chevdown}</span></button>
+      <button class="fpill ${isTracking()?'active':''}" data-act="trackpick"><span class="fic">${ICON.folder}</span><span class="flbl">${trackLbl}</span><span class="fchev">${ICON.chevdown}</span></button>
     </div>
     <div class="bxls">
-      <button data-act="xlupload"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L8 8m4-4 4 4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>${t('uploadExcel')}</button>
-      <button data-act="xltemplate"><svg viewBox="0 0 24 24"><path d="M12 4v12m0 0 4-4m-4 4-4-4"/><path d="M4 16v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>${t('downloadTemplate')}</button>
+      <button data-act="xlupload"><span class="bxic">${ICON.upload}</span>${t('uploadExcel')}</button>
+      <button data-act="xltemplate"><span class="bxic">${ICON.download}</span>${t('downloadTemplate')}</button>
     </div>
     <input type="file" id="xlfile" accept=".xlsx,.xls,.csv" style="display:none">
     ${topCats().length?budgetOverviewCard(st):''}
@@ -1569,45 +1612,57 @@ function budgetOverviewCard(st){
   const mom=momChange();
   const momUp=mom.diff>0, momFlat=mom.diff===0;
   const momCol=momFlat?'var(--ink3)':momUp?'var(--bad)':'var(--acc)';
-  const momArrow=momFlat?'→':momUp?'↑':'↓';
+  const momArrow=momFlat?'':momUp?ICON.arrowup:ICON.arrowdown;
   return `<div class="ovcard">
-    <div class="ovtop"><span class="t">${t('budgetOverview')}</span><span class="i">i</span></div>
-    <div class="ovgrid">
+    <div class="ovtop"><span class="t">${t('budgetOverview')}</span><span class="iic">${ICON.info}</span></div>
+    <div class="ovrow">
       <div class="ovleft">
         <div class="k">${t('totalBudget')}</div>
         <div class="big ${pv}">${sar(st.tb)}</div>
         <div class="sub">${periodLabel()}</div>
-        <div class="ovmom"><span>${t('vsLastMonth')}</span><b style="color:${momCol}">${momArrow} ${Math.abs(mom.pct)}%</b></div>
+        <div class="ovmom"><span class="ovmoml">${t('vsLastMonth')}</span><b class="ovmomv" style="color:${momCol}"><span class="ovmoma">${momArrow}</span>${Math.abs(mom.pct)}%</b></div>
       </div>
       <div class="ovdonut" dir="ltr">
         <svg viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="${r}" fill="none" stroke="#0a1322" stroke-width="9"/>
-          ${fill>0?`<circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="9" stroke-linecap="round" stroke-dasharray="${fill} ${circ}" transform="rotate(-90 50 50)"/>`:''}
+          <circle cx="50" cy="50" r="${r}" fill="none" stroke="#0e1a2e" stroke-width="8"/>
+          ${fill>0?`<circle cx="50" cy="50" r="${r}" fill="none" stroke="${col}" stroke-width="8" stroke-linecap="round" stroke-dasharray="${fill} ${circ}" transform="rotate(-90 50 50)"/>`:''}
         </svg>
-        <div class="ovdnum"><b>${st.tb>0?used+'%':'—'}</b><span>${t('used')}</span></div>
+        <div class="ovdnum"><b>${st.tb>0?used+'%':'—'}</b><span>${t('usedCap')}</span></div>
       </div>
-    </div>
-    <div class="ovright">
-      <div><span class="rk">${t('spent')}</span><b class="${pv}">${sar(st.sp)}</b></div>
-      <div><span class="rk">${t('remaining')}</span><b class="${pv}" style="color:${st.rem<0?'var(--bad)':'var(--acc)'}">${sar(st.rem)}</b></div>
-      <div><span class="rk">${t('forecast')}</span><b class="${pv}">${sar(Math.round(st.projection))}</b></div>
+      <div class="ovright">
+        <div class="ovrr"><span class="rk">${t('spent')}</span><b class="rv ${pv}">${sar(st.sp)}</b></div>
+        <div class="ovrr"><span class="rk">${t('remaining')}</span><b class="rv ${pv}" style="color:${st.rem<0?'var(--bad)':'var(--acc)'}">${sar(st.rem)}</b></div>
+        <div class="ovrr"><span class="rk">${t('forecast')}</span><b class="rv ${pv}">${sar(Math.round(st.projection))}</b></div>
+      </div>
     </div>
   </div>`;
 }
 
 // Alert card variant for the Budgets page (whole-portfolio, not tracked subset)
+function alertChipIcon(c){
+  // Prefer a clean line-icon based on category semantics; fall back to the emoji.
+  const n=(cname(c)+' '+(c.name?.en||'')).toLowerCase();
+  if(/phone|jawwal|mobile|communicat|جوال|اتصال/.test(n)) return `<span class="acci">${ICON.phone}</span>`;
+  if(/restaurant|food|dining|cafe|coffee|مطعم|طعام|قهوة/.test(n)) return `<span class="acci">${ICON.cutlery}</span>`;
+  return c.icon?`<span class="acce">${c.icon}</span>`:`<span class="acci">${ICON.spark}</span>`;
+}
 function alertCardHTML2(st){
   if(!(st.tb>0&&(st.sp>st.tb||(st.isCur&&st.pace>=1.15))))return '';
-  const contrib=topCats().map(c=>{const b=catBudget(c),s=catSpent(c.id,st.list);
+  // Surface the most over-pace LEAF categories (e.g. Phone, Personal Care,
+  // Restaurants) rather than rolled-up parents, so contributors are specific.
+  const leaves=S.cats.filter(isLeaf);
+  const contrib=leaves.map(c=>{const b=c.budget||0,s=catSpent(c.id,st.list);
     return{c,s,r:(b>0&&st.dayFrac>0)?s/(b*st.dayFrac)-1:(s>0&&b===0?1:-1)};})
     .filter(o=>o.r>0.05&&o.s>0).sort((a,b)=>b.r-a.r).slice(0,3);
-  const chips=contrib.map(o=>`<span class="acchip">${o.c.icon} ${cname(o.c)} <b>+${Math.round(o.r*100)}%</b></span>`).join('');
-  const exceed=Math.max(0,Math.round(st.projOver));
+  const chips=contrib.map(o=>`<span class="acchip">${alertChipIcon(o.c)}<span class="accn">${cname(o.c)}</span><b>+${Math.round(o.r*100)}%</b></span>`).join('');
   return `<div class="acard" data-go="reports">
-    <div class="arow"><div class="aic">🚨</div><div style="min-width:0"><div class="at">${LANG==='ar'?'تنبيه الميزانية':'Budget Alerts'}</div>
-      <div class="ad">${LANG==='ar'?'تصرف بوتيرة':"You're spending"} <b style="color:var(--bad)">${st.pace.toFixed(1)}×</b> ${LANG==='ar'?'أسرع من المخطط.':'faster than planned.'}</div></div>
-      <div class="aarr">›</div></div>
-    ${chips?`<div class="acchips" style="margin-top:11px">${chips}</div>`:''}
+    <div class="ahead">
+      <div class="aleft"><div class="aic">${ICON.alert}</div>
+        <div style="min-width:0"><div class="at">${LANG==='ar'?'تنبيه الميزانية':'Budget Alerts'}</div>
+        <div class="ad">${LANG==='ar'?'تصرف بوتيرة':"You're spending"} <b style="color:var(--bad)">${st.pace.toFixed(1)}×</b> ${LANG==='ar'?'أسرع من المخطط.':'faster than planned.'}</div></div></div>
+      <a class="aviewall" data-go="reports">${t('viewall')} <span class="avchev">${ICON.chevright}</span></a>
+    </div>
+    ${chips?`<div class="acchips">${chips}</div>`:''}
   </div>`;
 }
 
@@ -2431,7 +2486,10 @@ function alertItems(){
 function notifSheet(){
   const items=alertItems();
   openSheet(`<h3>🔔 ${LANG==='ar'?'التنبيهات':'Notifications'}</h3>
-    ${items.length?items.map(i=>`<div class="insight"><div class="ic" style="background:var(--card2)">${i.ic}</div><div><div class="t">${i.t}</div><div class="d">${i.d}</div></div></div>`).join(''):`<div class="empty"><div class="e">✅</div><p>${LANG==='ar'?'لا توجد تنبيهات — كل شيء على ما يرام':'No alerts — everything looks good'}</p></div>`}`);
+    ${items.length?items.map(i=>`<div class="insight"><div class="ic" style="background:var(--card2)">${i.ic}</div><div><div class="t">${i.t}</div><div class="d">${i.d}</div></div></div>`).join(''):`<div class="empty"><div class="e">✅</div><p>${LANG==='ar'?'لا توجد تنبيهات — كل شيء على ما يرام':'No alerts — everything looks good'}</p></div>`}
+    <button class="btn btn-ghost" id="notif_settings" style="margin-top:14px;text-align:start">⚙️ ${t('settings')}</button>`);
+  const gs=document.getElementById('notif_settings');
+  if(gs)gs.onclick=()=>{closeSheet();view='settings';drillCat=null;render();};
 }
 function periodSheet(){
   openSheet(`<h3>📅 ${LANG==='ar'?'الفترة':'Period'}</h3>
