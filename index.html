@@ -474,6 +474,40 @@ body.ar .copybox::after{right:auto;left:8px}
   border-radius:10px;padding:9px 32px 9px 11px;font-family:inherit;font-size:12.5px;font-weight:600;color:var(--ink);cursor:pointer}
 .txn-selchev{position:absolute;inset-inline-end:10px;top:50%;transform:translateY(-50%);pointer-events:none;display:inline-flex;color:var(--ink3)}
 .txn-selchev svg{width:15px;height:15px}
+/* ===== Searchable category picker ===== */
+.catpick{width:100%;display:flex;align-items:center;gap:9px;background:var(--card2);border:1px solid var(--line);
+  border-radius:12px;padding:12px 12px;font-family:inherit;font-size:14px;color:var(--ink);cursor:pointer;text-align:start}
+.catpick:active{transform:scale(.99)}
+.catpick.compact{border-radius:10px;padding:9px 11px;font-size:12.5px;font-weight:600}
+.catpick .cp-ic{flex:0 0 auto;font-size:16px;line-height:1}
+.catpick .cp-txt{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.catpick .cp-txt.cp-ph{color:var(--ink3)}
+.catpick .cp-chev{flex:0 0 auto;display:inline-flex;color:var(--ink3)}.catpick .cp-chev svg{width:16px;height:16px}
+.catpick-ov{position:fixed;inset:0;z-index:200;background:rgba(0,0,0,.55);backdrop-filter:blur(3px);
+  display:flex;align-items:flex-end;justify-content:center;animation:fade .2s ease}
+.catpick-sheet{width:100%;max-width:480px;background:var(--bg2);border:1px solid var(--line);
+  border-radius:22px 22px 0 0;max-height:78vh;display:flex;flex-direction:column;animation:sheetup .25s cubic-bezier(.2,.8,.2,1)}
+@keyframes sheetup{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.catpick-grab{width:38px;height:4px;border-radius:999px;background:var(--line);margin:10px auto 4px}
+.catpick-search{display:flex;align-items:center;gap:9px;padding:10px 16px 12px;border-bottom:1px solid var(--line)}
+.catpick-search .cps-ic{flex:0 0 auto;display:inline-flex;color:var(--ink3)}.catpick-search .cps-ic svg{width:18px;height:18px}
+.catpick-search input{flex:1 1 auto;background:var(--card2);border:1px solid var(--line);border-radius:12px;
+  padding:12px 13px;font-family:inherit;font-size:15px;color:var(--ink);min-width:0}
+.catpick-search input:focus{outline:none;border-color:var(--acc2)}
+.catpick-close{flex:0 0 auto;width:36px;height:36px;border-radius:10px;border:1px solid var(--line);
+  background:var(--card);color:var(--ink2);font-size:15px;cursor:pointer}
+.catpick-list{overflow-y:auto;padding:6px 10px 18px}
+.cprow{width:100%;display:flex;align-items:center;gap:11px;padding:13px 12px;border:none;background:none;
+  border-radius:12px;font-family:inherit;font-size:14.5px;color:var(--ink);cursor:pointer;text-align:start}
+.cprow:active,.cprow:hover{background:var(--card)}
+.cprow.sel{background:rgba(46,230,166,.12)}
+.cprow-ic{flex:0 0 auto;font-size:19px;line-height:1}
+.cprow-txt{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cprow-txt b{font-weight:600}
+.cprow-sub{color:var(--ink2);font-weight:400}
+.cprow.sel .cprow-txt b{color:var(--acc)}
+.cprow-chk{flex:0 0 auto;display:inline-flex;color:var(--acc)}.cprow-chk svg{width:18px;height:18px}
+.cprow-empty{padding:30px 12px;text-align:center;color:var(--ink3);font-size:14px}
 .txn-accept{flex:0 0 auto;align-self:stretch}
 .qbtn.acc.txn-accept{border:1px solid var(--acc);color:var(--acc);background:transparent;font-weight:700;
   font-size:13px;padding:0 16px;border-radius:10px;font-family:inherit;cursor:pointer}
@@ -547,6 +581,7 @@ const T = {
     suggested:"Suggested",status_ok:"On track",status_warn:"Near limit",status_over:"Over budget",
     nothingMonth:"Nothing spent this period yet.",resetInfo:"Budgets reset monthly · history is kept",
     needCat:"Add a category first",pickCat:"Pick a category",txDetail:"Transaction",
+    searchCat:"Search categories…",noCatMatch:"No matching category",
     edit:"Edit",assignCat:"Assign category",incomeV:"Income",expenseV:"Expense",net:"Net",
     cashflow:"Cash Flow",exportData:"Exported to file",addedTx:"Expense added",savedCat:"Category saved",
     deletedTx:"Transaction deleted",alertNear:"is near its budget limit",alertOver:"is over budget",
@@ -580,6 +615,7 @@ const T = {
     suggested:"مقترح",status_ok:"ضمن الحد",status_warn:"قريب من الحد",status_over:"تجاوز الميزانية",
     nothingMonth:"لا مصروفات في هذه الفترة بعد.",resetInfo:"تتجدد الميزانية شهرياً · يُحفظ السجل",
     needCat:"أضف فئة أولاً",pickCat:"اختر فئة",txDetail:"العملية",
+    searchCat:"ابحث في الفئات…",noCatMatch:"لا توجد فئة مطابقة",
     edit:"تعديل",assignCat:"تصنيف",incomeV:"الدخل",expenseV:"المصروف",net:"الصافي",
     cashflow:"التدفق النقدي",exportData:"تم التصدير إلى ملف",addedTx:"تمت إضافة المصروف",savedCat:"تم حفظ الفئة",
     deletedTx:"تم حذف العملية",alertNear:"اقترب من حد الميزانية",alertOver:"تجاوز الميزانية",
@@ -1411,6 +1447,8 @@ const ICON = {
   cutlery:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h0c1.1 0 2-.9 2-2V2M5 2v9m0 0v11M19 2c-1.5 0-3 1.5-3 4s1.5 4 3 4v12"/></svg>`,
   spark:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>`,
   alert:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>`,
+  search:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>`,
+  check:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
   gear:`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
 };
 function header(){
@@ -2029,13 +2067,7 @@ function txNeedsRow(x){
     <div class="txn-cat">
       <div class="txn-sug">
         <span class="txn-sugl">${t('suggestedLbl')}</span>
-        <div class="txn-selwrap">
-          <select class="txn-sel" data-txnsel="${x.id}">
-            <option value="uncat" ${!sug?'selected':''} disabled hidden>${t('pickCat')}</option>
-            ${leafOptions(sug)}
-          </select>
-          <span class="txn-selchev">${ICON.chevdown}</span>
-        </div>
+        ${catPickerField('txnsel_'+x.id, sug||'uncat', {compact:true})}
       </div>
       <button class="qbtn acc txn-accept" data-txnaccept="${x.id}">${t('accept')}</button>
     </div>
@@ -2283,6 +2315,10 @@ function openSheet(html){
   s.innerHTML=`<div class="sheet"><div class="grab"></div>${html}</div>`;
   document.body.appendChild(s);
   s.addEventListener('click',e=>{if(e.target===s)closeSheet();});
+  // Wire any searchable category-picker fields rendered inside this sheet.
+  s.querySelectorAll('[data-catpick]').forEach(el=>el.onclick=(e)=>{
+    e.stopPropagation(); e.preventDefault(); openCatPicker(el.dataset.catpick);
+  });
 }
 function closeSheet(){const s=document.getElementById('scrim');if(s)s.remove();}
 function toast(msg){const el=document.createElement('div');el.className='toast';el.textContent=msg;
@@ -2340,7 +2376,6 @@ function renderIconPicker(selected){
 }
 
 function expenseSheet(prefill={}){
-  const catOpts=catSelectOptions(prefill.cat);
   openSheet(`
     <h3>${t('addExpense')}</h3>
     <div class="seg" id="mode"><button class="on" data-mode="manual">${t('manual')}</button><button data-mode="sms">${t('sms')}</button></div>
@@ -2354,7 +2389,7 @@ function expenseSheet(prefill={}){
       <label>${t('amount')} (SAR)</label><input id="amt" type="number" inputmode="decimal" value="${prefill.amount||''}" placeholder="0.00">
       <label>${t('vendor')}</label><input id="ven" value="${prefill.vendor||''}" placeholder="${LANG==='ar'?'اسم المتجر':'Merchant name'}">
       <div id="suggestbox"></div>
-      <label>${t('category')}</label><select id="cat">${catOpts}</select>
+      <label>${t('category')}</label>${catPickerField('cat', prefill.cat||'uncat')}
       <label>${t('date')}</label><input id="dt" type="date" value="${prefill.date||new Date().toISOString().slice(0,10)}">
       <label>${t('card')}</label><select id="card">${cardOptions(prefill.card||'')}</select>
       <label>${t('notes')}</label><input id="note" placeholder="${LANG==='ar'?'اختياري':'optional'}">
@@ -2418,7 +2453,7 @@ function expenseSheet(prefill={}){
   const ven=document.getElementById('ven');
   if(ven) ven.oninput=()=>{const sug=suggestCat(ven.value);const box=document.getElementById('suggestbox');
     if(sug&&catById(sug)){box.innerHTML=`<div class="note">💡 ${t('suggested')}: <span class="pill on" id="usesug">${catById(sug).icon} ${cname(catById(sug))}</span></div>`;
-      document.getElementById('usesug').onclick=()=>{document.getElementById('cat').value=sug;};}else box.innerHTML='';};
+      document.getElementById('usesug').onclick=()=>{const h=document.getElementById('cat');h.value=sug;const f=document.querySelector('[data-catpick="cat"]');if(f){const lab=catLabelFor(sug);f.querySelector('.cp-ic').textContent=lab.icon;const tx=f.querySelector('.cp-txt');tx.textContent=lab.text;tx.classList.remove('cp-ph');}};}else box.innerHTML='';};
   const st=document.getElementById('savetx');
   if(st) st.onclick=()=>{
     const amt=parseFloat(document.getElementById('amt').value);
@@ -2454,6 +2489,101 @@ function catSelectOptions(sel){
       o+=`</optgroup>`;}
     else o+=`<option value="${c.id}" ${sel===c.id?'selected':''}>${c.icon} ${cname(c)}</option>`;});
   return o;
+}
+
+/* ===== Reusable searchable category picker =====
+   Renders a tappable field bound to a hidden <input id="{id}"> so existing save
+   logic that reads `.value` keeps working. Tapping opens a search overlay.
+   Used everywhere a transaction is categorized (Add Expense, Edit, inline rows). */
+function catLabelFor(catId){
+  if(!catId||catId==='uncat') return {icon:'❓', text:t('pickCat'), placeholder:true};
+  const c=catById(catId);
+  if(!c) return {icon:'❓', text:t('pickCat'), placeholder:true};
+  const parent=c.parent?catById(c.parent):null;
+  return {icon:c.icon, text:parent?`${cname(parent)} › ${cname(c)}`:cname(c), placeholder:false};
+}
+function catPickerField(id, selectedId, opts={}){
+  const lab=catLabelFor(selectedId);
+  const cls=opts.compact?'catpick compact':'catpick';
+  return `<input type="hidden" id="${id}" value="${selectedId||'uncat'}">
+    <button type="button" class="${cls}" data-catpick="${id}">
+      <span class="cp-ic">${lab.icon}</span>
+      <span class="cp-txt ${lab.placeholder?'cp-ph':''}">${lab.text}</span>
+      <span class="cp-chev">${ICON.chevdown}</span>
+    </button>`;
+}
+// Opens the search overlay for a given hidden-input field id. On pick, updates
+// the hidden input + the visible field label, runs an optional onPick callback,
+// and closes only the overlay (any underlying sheet stays open).
+let _catPickTarget=null, _catPickOnPick=null;
+function openCatPicker(fieldId, onPick){
+  _catPickTarget=fieldId; _catPickOnPick=onPick||null;
+  const ov=document.createElement('div');
+  ov.id='catpick-ov'; ov.className='catpick-ov';
+  ov.innerHTML=`<div class="catpick-sheet">
+    <div class="catpick-grab"></div>
+    <div class="catpick-search"><span class="cps-ic">${ICON.search||'🔍'}</span>
+      <input id="catpick-q" placeholder="${t('searchCat')}" autocomplete="off">
+      <button type="button" class="catpick-close" data-catpick-close>✕</button></div>
+    <div class="catpick-list" id="catpick-list">${catPickerRows('')}</div>
+  </div>`;
+  document.body.appendChild(ov);
+  const q=document.getElementById('catpick-q');
+  const relist=()=>{ document.getElementById('catpick-list').innerHTML=catPickerRows(q.value); bindCatPickRows(); };
+  q.oninput=relist;
+  ov.querySelector('[data-catpick-close]').onclick=closeCatPicker;
+  ov.onclick=(e)=>{ if(e.target===ov) closeCatPicker(); };
+  bindCatPickRows();
+  setTimeout(()=>q.focus(),50);
+}
+function closeCatPicker(){ const ov=document.getElementById('catpick-ov'); if(ov)ov.remove(); _catPickTarget=null; _catPickOnPick=null; }
+// Build the filtered, grouped leaf rows. Matches on leaf name, parent name, or
+// the combined "Parent › Leaf" path (so "loan" finds "Loans › Home Loan").
+function catPickerRows(query){
+  const q=(query||'').trim().toLowerCase();
+  const leaves=S.cats.filter(isLeaf);
+  const rows=leaves.map(c=>{
+    const parent=c.parent?catById(c.parent):null;
+    const path=parent?`${cname(parent)} › ${cname(c)}`:cname(c);
+    return {c, parent, path, hay:(path+' '+cname(c)+(parent?' '+cname(parent):'')).toLowerCase()};
+  }).filter(r=>!q||r.hay.includes(q));
+  // sort by parent name then leaf
+  rows.sort((a,b)=>(a.parent?cname(a.parent):cname(a.c)).localeCompare(b.parent?cname(b.parent):cname(b.c))||cname(a.c).localeCompare(cname(b.c)));
+  const cur=_catPickTarget?(document.getElementById(_catPickTarget)||{}).value:null;
+  let html='';
+  // "Uncategorized" option always available (and when matching the query)
+  if(!q || t('uncategorized').toLowerCase().includes(q) || 'uncategorized'.includes(q)){
+    html+=`<button type="button" class="cprow ${cur==='uncat'?'sel':''}" data-cppick="uncat">
+      <span class="cprow-ic">❓</span><span class="cprow-txt">${t('uncategorized')}</span>
+      ${cur==='uncat'?`<span class="cprow-chk">${ICON.check||'✓'}</span>`:''}</button>`;
+  }
+  html+=rows.map(r=>{
+    const parent=r.parent;
+    const main=parent?cname(parent):cname(r.c);
+    const sub=parent?cname(r.c):'';
+    return `<button type="button" class="cprow ${cur===r.c.id?'sel':''}" data-cppick="${r.c.id}">
+      <span class="cprow-ic">${r.c.icon}</span>
+      <span class="cprow-txt"><b>${main}</b>${sub?`<span class="cprow-sub"> › ${sub}</span>`:''}</span>
+      ${cur===r.c.id?`<span class="cprow-chk">${ICON.check||'✓'}</span>`:''}</button>`;
+  }).join('');
+  if(!html) html=`<div class="cprow-empty">${t('noCatMatch')}</div>`;
+  return html;
+}
+function bindCatPickRows(){
+  document.querySelectorAll('#catpick-list [data-cppick]').forEach(el=>el.onclick=()=>{
+    const val=el.dataset.cppick, fieldId=_catPickTarget, cb=_catPickOnPick;
+    const hidden=document.getElementById(fieldId);
+    if(hidden){
+      hidden.value=val;
+      // update the visible field label
+      const field=document.querySelector(`[data-catpick="${fieldId}"]`);
+      if(field){const lab=catLabelFor(val);
+        field.querySelector('.cp-ic').textContent=lab.icon;
+        const txt=field.querySelector('.cp-txt'); txt.textContent=lab.text; txt.classList.toggle('cp-ph',lab.placeholder);}
+    }
+    closeCatPicker();
+    if(cb) cb(val);
+  });
 }
 
 // Categorization is leaf-only: a category stops being assignable the moment it
@@ -2666,7 +2796,7 @@ function txSheet(id){
   openSheet(`<h3>${t('txDetail')}</h3>
     <label>${t('amount')} (SAR)</label><input id="e_amt" type="number" value="${x.amount}">
     <label>${t('vendor')}</label><input id="e_ven" value="${x.vendor||''}">
-    <label>${t('category')}</label><select id="e_cat">${catSelectOptions(x.cat)}</select>
+    <label>${t('category')}</label>${catPickerField('e_cat', x.cat||'uncat')}
     <label>${t('date')}</label><input id="e_dt" type="date" value="${x.date}">
     <label>${t('card')}</label><select id="e_card">${cardOptions(x.card)}</select>
     <label>${t('notes')}</label><input id="e_note" value="${x.note||''}">
@@ -2935,24 +3065,25 @@ function bind(){
   // Change → open the transaction editor to pick manually
   document.querySelectorAll('[data-qchange]').forEach(el=>el.onclick=(e)=>{e.stopPropagation();txSheet(el.dataset.qchange);});
   document.querySelectorAll('[data-qrow]').forEach(el=>el.onclick=()=>txSheet(el.dataset.qrow));
-  // --- Transactions page: filter tabs, inline suggestion dropdown, Accept ---
+  // --- Transactions page: filter tabs, searchable category picker, Accept ---
   document.querySelectorAll('[data-txtab]').forEach(el=>el.onclick=()=>{txTab=el.dataset.txtab;render();});
-  // Changing the inline dropdown updates that row's suggested selection (no commit yet).
-  document.querySelectorAll('[data-txnsel]').forEach(el=>{
-    el.onclick=e=>e.stopPropagation();
-    el.onchange=e=>{ e.stopPropagation(); /* selection read on Accept */ };
-  });
-  // Accept commits whatever category is currently chosen in the row's dropdown.
+  // Accept commits whatever category is currently chosen in the row's picker.
   document.querySelectorAll('[data-txnaccept]').forEach(el=>el.onclick=(e)=>{
     e.stopPropagation();
     const id=el.dataset.txnaccept;
-    const sel=document.querySelector(`[data-txnsel="${id}"]`);
-    const cat=sel?sel.value:null;
+    const hidden=document.getElementById('txnsel_'+id);
+    const cat=hidden?hidden.value:null;
     if(!cat||cat==='uncat'){ toast(t('pickCat')); return; }
     acceptSuggestion(id,cat);
   });
   // Tapping a needs-categorization row (outside its controls) opens the full editor.
   document.querySelectorAll('[data-txnrow]').forEach(el=>el.onclick=()=>txSheet(el.dataset.txnrow));
+  // Searchable category picker: any field opens the search overlay. Stop the tap
+  // from bubbling to a parent row (which would open the editor instead).
+  document.querySelectorAll('[data-catpick]').forEach(el=>el.onclick=(e)=>{
+    e.stopPropagation(); e.preventDefault();
+    openCatPicker(el.dataset.catpick);
+  });
   const search=document.getElementById('search');
   if(search)search.oninput=()=>{searchQ=search.value;const cur=document.activeElement;render();const ns=document.getElementById('search');if(ns){ns.focus();ns.value=searchQ;ns.setSelectionRange(searchQ.length,searchQ.length);}};
   document.querySelectorAll('[data-act]').forEach(el=>el.onclick=()=>{
