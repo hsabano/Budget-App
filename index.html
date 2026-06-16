@@ -967,43 +967,59 @@ function trackSheet(){
   closeSheet();
   if(trackDraft===null){
     const f=S.settings.trackFilter;
-    trackDraft = (f&&f.length) ? new Set(trackedLeafIds()||[]) : new Set(); // expand any legacy top-level ids to leaves
+    trackDraft = (f&&f.length) ? new Set(trackedLeafIds()||[]) : (f&&f.length===0 ? new Set(['__NONE__']) : new Set()); // expand any legacy top-level ids to leaves
   }
-  const allSelected = trackDraft.size===0;
+  const _clearAll = trackDraft.size===1 && trackDraft.has('__NONE__');
+  const _allLeafIds = ()=> S.cats.filter(isLeaf).map(c=>c.id);
   const rows = topCats().map(c=>{
     const kids=childrenOf(c.id);
     if(!kids.length){
-      const on=trackDraft.has(c.id);
+      const on=_clearAll ? false : (trackDraft.size===0 || trackDraft.has(c.id));
       return trackRowHTML(c, on, false, null);
     }
-    const onCount=kids.filter(k=>trackDraft.has(k.id)).length;
+    const leafOn = k=> _clearAll ? false : (trackDraft.size===0 || trackDraft.has(k.id));
+    const onCount=kids.filter(leafOn).length;
     const state = onCount===0?'off':onCount===kids.length?'on':'mixed';
     const expanded=trackExpanded.has(c.id);
-    const kidRows = expanded ? kids.map(k=>trackRowHTML(k, trackDraft.has(k.id), true, c.id)).join('') : '';
+    const kidRows = expanded ? kids.map(k=>trackRowHTML(k, leafOn(k), true, c.id)).join('') : '';
     return trackRowHTML(c, state, true, null, expanded)+kidRows;
   }).join('');
   openSheet(`<h3>🎯 ${LANG==='ar'?'تتبّع':'Track'}</h3>
     <p class="note">${LANG==='ar'
       ?'اختر الفئات التي تريد تتبعها في لوحة التحكم. العناصر غير المحددة (مثل القروض) لن تُحسب.'
       :'Choose which categories show up on your dashboard. Anything left unchecked (like loans) is excluded.'}</p>
-    <div class="catcard" data-track="__all__" style="cursor:pointer">
-      <div class="catrow">
-        <div class="trkchk ${allSelected?'on':''}">${allSelected?'✓':''}</div>
-        <div class="catname">${LANG==='ar'?'الكل':'All categories'}</div>
-      </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <button class="btn" data-track="__all__" style="flex:1;padding:9px 0;font-size:13px">${LANG==='ar'?'تحديد الكل':'Select All'}</button>
+      <button class="btn" data-track="__none__" style="flex:1;padding:9px 0;font-size:13px;color:var(--ink3)">${LANG==='ar'?'إلغاء الكل':'Clear All'}</button>
     </div>
     ${rows}
     <button class="btn btn-pri" id="trk_apply" style="margin-top:14px">${LANG==='ar'?'تطبيق':'Apply'}</button>`);
-  document.getElementById('scrim').querySelectorAll('[data-track]').forEach(el=>el.onclick=()=>{
+  // trackDraft semantics:
+  //   null              = not yet initialized
+  //   Set()             = "all selected" (size===0, legacy)
+  //   Set(['__NONE__']) = "clear all" — nothing tracked
+  //   Set([...ids])     = explicit leaf selection
+  const allLeafIds = ()=> S.cats.filter(isLeaf).map(c=>c.id);
+  // If draft is "all" (empty), expand to explicit set so one leaf can be unchecked
+  const ensureExpanded = ()=>{ if(trackDraft.size===0) allLeafIds().forEach(id=>trackDraft.add(id)); };
+  const isClearAll = ()=> trackDraft.size===1 && trackDraft.has('__NONE__');
+  document.getElementById('scrim').querySelectorAll('[data-track]').forEach(el=>el.onclick=(e)=>{
+    e.stopPropagation();
     const id=el.dataset.track;
-    if(id==='__all__'){ trackDraft=new Set(); trackSheet(); return; }
-    if(el.dataset.expand!==undefined){ // parent row: clicking the row (not the chevron) toggles all its children
-      const c=catById(id), kids=childrenOf(id);
+    // Select All: every leaf explicitly checked
+    if(id==='__all__'){ trackDraft=new Set(allLeafIds()); trackSheet(); return; }
+    // Clear All: sentinel meaning "nothing tracked"
+    if(id==='__none__'){ trackDraft=new Set(['__NONE__']); trackSheet(); return; }
+    if(isClearAll()){ trackDraft=new Set(); } // reset from cleared state before toggling
+    if(el.dataset.expand!==undefined){ // parent row: toggle all its children
+      ensureExpanded();
+      const kids=childrenOf(id);
       const allOn=kids.every(k=>trackDraft.has(k.id));
       kids.forEach(k=> allOn ? trackDraft.delete(k.id) : trackDraft.add(k.id));
       trackSheet(); return;
     }
-    // leaf row (childless top-level, or a child)
+    // leaf row — expand "all" first so we can remove just this one
+    ensureExpanded();
     trackDraft.has(id) ? trackDraft.delete(id) : trackDraft.add(id);
     trackSheet();
   });
@@ -1014,7 +1030,9 @@ function trackSheet(){
     trackSheet();
   });
   document.getElementById('trk_apply').onclick=()=>{
-    S.settings.trackFilter = trackDraft.size ? [...trackDraft] : null;
+    const isClear = trackDraft.size===1 && trackDraft.has('__NONE__');
+    // null = track all; [] = track none; [...ids] = explicit selection
+    S.settings.trackFilter = isClear ? [] : (trackDraft.size ? [...trackDraft] : null);
     markDirty('settings','main');
     trackDraft=null; trackExpanded=new Set();
     save(); closeSheet(); render();
@@ -1045,14 +1063,15 @@ function trackRowHTML(c, state, isParent, parentId, expanded){
    include everything" rather than "empty set"). */
 function trackedLeafIds(){
   const f=S.settings.trackFilter;
-  if(!f||!f.length) return null;
+  if(f===null||f===undefined) return null; // no filter — track everything
+  if(f.length===0) return new Set();       // "Clear All" — track nothing
   const out=new Set();
   f.forEach(id=>{
     const c=catById(id); if(!c) return;
     if(isLeaf(c)) out.add(c.id);
     else childrenOf(c.id).forEach(k=>out.add(k.id)); // top-level w/ children -> all its leaves
   });
-  return out.size?out:null;
+  return out.size?out:new Set();
 }
 const isTracking = () => trackedLeafIds()!==null;
 // effective budget total honoring the tracking filter: sums each tracked
