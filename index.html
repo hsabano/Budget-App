@@ -1731,7 +1731,6 @@ function budgetView(){
     ${topCats().length?(S.settings.hideDonut?budgetSummaryStrip(st):budgetOverviewCard(st)):''}
     ${alertCardHTML2(st)}
     ${topCats().length?budgetGroupsCard(st):emptyCats()}
-    ${categorizationCard()}
   </div>`;
 }
 
@@ -1913,53 +1912,6 @@ function budgetGroupRow(c,list){
 function uncatTx(){ return [...S.tx].filter(x=>!x.cat||x.cat==='uncat').sort((a,b)=>txStamp(b)-txStamp(a)); }
 function recentlyCatTx(){ return [...S.tx].filter(x=>x.cat&&x.cat!=='uncat'&&x._justCat).sort((a,b)=>txStamp(b)-txStamp(a)); }
 
-function categorizationCard(){
-  const needs=uncatTx();
-  const needsCount=needs.length;
-  const tab=catqTab;
-  return `<div class="racard">
-    <div class="rahead"><span class="t">${t('recentActivity')} <span class="ovtop" style="display:inline-flex"><span class="i">i</span></span></span>
-      <a data-go="transactions">${t('viewall')}</a></div>
-    <div class="ratabs">
-      <button class="ratab ${tab==='needs'?'on':''}" data-catqtab="needs">${t('needsCat')} <span class="racount">${needsCount}</span></button>
-      <button class="ratab ${tab==='done'?'on':''}" data-catqtab="done">${t('recentlyCat')}</button>
-    </div>
-    ${tab==='needs'?needsList(needs):doneList()}
-  </div>`;
-}
-function needsList(needs){
-  if(!needs.length) return `<div class="empty" style="padding:30px 10px"><div class="e">✅</div><p>${t('allCaughtUp')}</p></div>`;
-  const show=catqExpanded?needs:needs.slice(0,4);
-  const rows=show.map(x=>{
-    const sug=suggestCat(x.vendor);
-    const sc=sug?catById(sug):null;
-    return `<div class="qrow" data-qrow="${x.id}">
-      <div class="qic">${sc?sc.icon:'❓'}</div>
-      <div class="qnm"><div class="n">${x.vendor||t('expenseV')}</div><div class="m">${qtimeLabel(x)}</div></div>
-      <div class="qamt">−${sar(x.amount)}</div>
-      ${sc?`<div class="qsug"><span class="l">${t('suggestedLbl')}</span>
-        <span class="qsugpill" data-qchange="${x.id}"><span class="cd">${sc.icon} ${cname(sc)}</span><span class="cv">▾</span></span></div>
-        <div class="qacts"><button class="qbtn acc" data-qaccept="${x.id}" data-cat="${sug}">${t('accept')}</button>
-          <button class="qbtn" data-qchange="${x.id}">${t('change')}</button></div>`
-        :`<div class="qsug"></div><div class="qacts"><button class="qbtn acc" data-qchange="${x.id}">${t('pickCat')}</button></div>`}
-    </div>`;
-  }).join('');
-  const more=needs.length>4?`<div class="qmore" data-catqmore>${catqExpanded?t('showLess'):t('showMore')}
-    <svg viewBox="0 0 24 24"><path d="${catqExpanded?'M18 15l-6-6-6 6':'M6 9l6 6 6-6'}"/></svg></div>`:'';
-  return rows+more;
-}
-function doneList(){
-  // "Recently Categorized" history is out of scope this pass — show a light placeholder.
-  const done=[...S.tx].filter(x=>x.cat&&x.cat!=='uncat').sort((a,b)=>txStamp(b)-txStamp(a)).slice(0,5);
-  if(!done.length) return `<div class="empty" style="padding:30px 10px"><div class="e">🗂️</div><p>${t('nothingMonth')}</p></div>`;
-  return done.map(x=>{const c=catById(x.cat);return `<div class="qrow" data-tx="${x.id}">
-    <div class="qic">${c?c.icon:'💸'}</div>
-    <div class="qnm"><div class="n">${x.vendor||t('expenseV')}</div><div class="m">${qtimeLabel(x)}</div></div>
-    <div class="qamt">−${sar(x.amount)}</div>
-    <div class="qsug" style="flex-direction:row;align-items:center"><span class="qcat">${c?cname(c):''}</span></div>
-    <div class="qtime"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></div>
-  </div>`;}).join('');
-}
 function qtimeLabel(x){
   const d=new Date(x.date+'T'+(x.time&&/^\d{1,2}:\d{2}/.test(x.time)?x.time:'12:00'));
   const now=new Date();
@@ -3055,16 +3007,6 @@ function bind(){
   });
   // Kebab menu on a sub-category → edit / view transactions / delete
   document.querySelectorAll('[data-kebab]').forEach(el=>el.onclick=(e)=>{e.stopPropagation();catKebabSheet(el.dataset.kebab);});
-  // Recent-Activity tab switch
-  document.querySelectorAll('[data-catqtab]').forEach(el=>el.onclick=()=>{catqTab=el.dataset.catqtab;catqExpanded=false;render();});
-  // Show more / less in the categorization queue
-  const qm=document.querySelector('[data-catqmore]'); if(qm)qm.onclick=()=>{catqExpanded=!catqExpanded;render();};
-  // Accept a suggested category
-  document.querySelectorAll('[data-qaccept]').forEach(el=>el.onclick=(e)=>{e.stopPropagation();
-    const id=el.dataset.qaccept, cat=el.dataset.cat; acceptSuggestion(id,cat);});
-  // Change → open the transaction editor to pick manually
-  document.querySelectorAll('[data-qchange]').forEach(el=>el.onclick=(e)=>{e.stopPropagation();txSheet(el.dataset.qchange);});
-  document.querySelectorAll('[data-qrow]').forEach(el=>el.onclick=()=>txSheet(el.dataset.qrow));
   // --- Transactions page: filter tabs, searchable category picker, Accept ---
   document.querySelectorAll('[data-txtab]').forEach(el=>el.onclick=()=>{txTab=el.dataset.txtab;render();});
   // Accept commits whatever category is currently chosen in the row's picker.
