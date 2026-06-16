@@ -267,6 +267,9 @@ body.ar .copybox::after{right:auto;left:8px}
 .csel{width:auto;padding:7px 28px 7px 12px;font-size:12px;border-radius:10px;background:var(--card2)}
 .cleg{display:flex;gap:14px;margin:11px 0 4px;font-size:10.5px;color:var(--ink2);flex-wrap:wrap}
 .cleg span{display:flex;align-items:center;gap:5px}
+.cleg .axhint{font-style:normal;color:var(--ink3);font-size:9px}
+.barhit.active~*{}
+svg .barhit.active{}
 .lln{width:14px;height:2px;background:var(--acc);display:inline-block}
 .lsq{width:8px;height:8px;background:var(--acc);border-radius:2px;display:inline-block}
 .lds{width:14px;height:0;border-top:2px dashed #9fb0d4;display:inline-block}
@@ -1513,7 +1516,25 @@ function dashStats(){
   const usedPct=tb>0?(sp/tb)*100:(sp>0?999:0);
   return {list,tb,sp,rem:tb-sp,daysInPeriod,dayOf,dayFrac,pace,projection,projOver:projection-tb,daily,cum,usedPct,isCur};
 }
-function niceCeil(v){const p=Math.pow(10,Math.floor(Math.log10(Math.max(v,1))));const n=v/p;const m=n<=1?1:n<=2?2:n<=5?5:10;return m*p;}
+// Choose an axis maximum for `divs` gridline intervals (default 4) that sits
+// just above the data, with each gridline a round number. The top label ends up
+// close to the real maximum — e.g. peak 42,363 -> step 12,000 -> max 48,000 with
+// lines at 12K/24K/36K/48K, instead of an over-tall 50K that squashes the data.
+function niceStep(v){
+  v=Math.max(v,1);
+  const p=Math.pow(10,Math.floor(Math.log10(v)));
+  const n=v/p; // 1..10
+  const steps=[1,1.2,1.5,2,2.5,3,4,5,6,8,10];
+  let m=10; for(const s of steps){ if(n<=s+1e-9){ m=s; break; } }
+  return m*p;
+}
+function niceAxisMax(dataMax,divs){
+  divs=divs||4;
+  const step=niceStep(dataMax/divs);
+  return step*divs;
+}
+// Back-compat alias (older callers): round a single value up to a nice number.
+function niceCeil(v){ return niceStep(v); }
 function kfmt(v){return v>=1000?(Math.round(v/100)/10).toString().replace(/\.0$/,'')+'K':String(Math.round(v));}
 
 function gaugeHTML(st){
@@ -1570,21 +1591,40 @@ function spendChartHTML(st){
   const days=st.daysInPeriod;
   const mode=chartMode||(days>45?'weekly':'daily');
   const pv=S.settings.privacy?'bal-hidden':'';
-  const W=320,H=200,L=30,Rm=4,T=8,B=22,pW=W-L-Rm,pH=H-T-B;
+  const W=320,H=200,L=30,Rm=30,T=12,B=22,pW=W-L-Rm,pH=H-T-B;
   const proj=st.isCur?st.projection:st.sp;
-  const yMax=niceCeil(Math.max(st.cum[days-1]||0,st.tb,proj,100)*1.08);
-  const X=i=>L+pW*(i+0.5)/days, Y=v=>T+pH-pH*v/yMax;
+  // ---- Left axis: cumulative line + budget line + projection ----
+  const leftMax=niceAxisMax(Math.max(st.cum[days-1]||0, st.tb, proj, 100),4);
+  const X=i=>L+pW*(i+0.5)/days, Y=v=>T+pH-pH*v/leftMax;
+  // ---- Right axis: daily/weekly bars get their OWN scale so they're readable ----
+  let series=[]; // {i,x,v}
+  if(mode==='daily'){ st.daily.forEach((v,i)=>{ if(v>0) series.push({i,x:X(i),v}); }); }
+  else { const wk=Math.ceil(days/7);
+    for(let w=0;w<wk;w++){let v=0;for(let d=w*7;d<Math.min(days,(w+1)*7);d++)v+=st.daily[d];
+      if(v>0) series.push({i:w, x:L+pW*(w+0.5)/wk, v});} }
+  const barPeak=series.reduce((m,s)=>Math.max(m,s.v),0);
+  const barMax=niceAxisMax(Math.max(barPeak,1),2);
+  const YB=v=>T+pH-pH*v/barMax;
+  const avg=days>0?st.tb/days:0, wavg=avg*7;
+  const barCol=v=>{const a=mode==='daily'?avg:wavg; return a>0&&v>2*a?'#ff6b81':a>0&&v>a?'#ffb454':'#2ee6a6';};
+  // ---- Left gridlines + labels ----
   let grid='';
-  for(let g=0;g<=4;g++){const v=yMax*g/4;const yy=Y(v);
+  for(let g=0;g<=4;g++){const v=leftMax*g/4;const yy=Y(v);
     grid+=`<line x1="${L}" x2="${W-Rm}" y1="${yy.toFixed(1)}" y2="${yy.toFixed(1)}" stroke="#16223c" stroke-width="1"/><text x="${L-4}" y="${(yy+2.6).toFixed(1)}" font-size="7" fill="#6b7da6" text-anchor="end">${kfmt(v)}</text>`;}
-  let bars='';const avg=days>0?st.tb/days:0;
-  if(mode==='daily'){const bw=Math.max(1.5,pW/days*0.5);
-    st.daily.forEach((v,i)=>{if(v<=0)return;const col=avg>0&&v>2*avg?'#ff6b81':avg>0&&v>avg?'#ffb454':'#2ee6a6';
-      bars+=`<rect x="${(X(i)-bw/2).toFixed(1)}" y="${Y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0,Y(0)-Y(v)).toFixed(1)}" rx="1" fill="${col}" opacity=".85"/>`;});
-  }else{const wk=Math.ceil(days/7),bw=Math.max(3,pW/wk*0.5);
-    for(let w=0;w<wk;w++){let v=0;for(let d=w*7;d<Math.min(days,(w+1)*7);d++)v+=st.daily[d];if(v<=0)continue;
-      const cx=L+pW*(w+0.5)/wk,wavg=avg*7,col=wavg>0&&v>2*wavg?'#ff6b81':wavg>0&&v>wavg?'#ffb454':'#2ee6a6';
-      bars+=`<rect x="${(cx-bw/2).toFixed(1)}" y="${Y(v).toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(0,Y(0)-Y(v)).toFixed(1)}" rx="1.5" fill="${col}" opacity=".85"/>`;}}
+  // ---- Right axis labels (bar scale), tinted toward the bar color ----
+  let raxis='';
+  for(let g=1;g<=2;g++){const v=barMax*g/2;const yy=YB(v);
+    raxis+=`<text x="${W-Rm+5}" y="${(yy+2.6).toFixed(1)}" font-size="7" fill="#3f7d63" text-anchor="start">${kfmt(v)}</text>`;}
+  // ---- Bars + invisible hit targets ----
+  let bars='', hits='';
+  const bw=mode==='daily'?Math.max(1.5,pW/days*0.5):Math.max(3,pW/Math.ceil(days/7)*0.5);
+  series.forEach(s=>{
+    const y=YB(s.v), h=Math.max(0,YB(0)-y), col=barCol(s.v);
+    bars+=`<rect x="${(s.x-bw/2).toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="1" fill="${col}" opacity=".9"/>`;
+    const hw=Math.max(bw,10);
+    hits+=`<rect class="barhit" data-bv="${Math.round(s.v)}" data-bx="${s.x.toFixed(1)}" data-by="${y.toFixed(1)}" x="${(s.x-hw/2).toFixed(1)}" y="${T}" width="${hw.toFixed(1)}" height="${pH}" fill="transparent"/>`;
+  });
+  // ---- Cumulative area + line ----
   let lp='';
   for(let i=0;i<st.dayOf;i++){lp+=(i?'L':'M')+X(i).toFixed(1)+','+Y(st.cum[i]).toFixed(1);}
   const ap=st.dayOf>0?lp+`L${X(st.dayOf-1).toFixed(1)},${Y(0).toFixed(1)}L${X(0).toFixed(1)},${Y(0).toFixed(1)}Z`:'';
@@ -1600,9 +1640,9 @@ function spendChartHTML(st){
   return `<div class="ccard">
     <div class="chead"><div class="ctitle">${LANG==='ar'?'الصرف عبر الوقت':'SPEND OVER TIME'}</div>
       <select id="chartmode" class="csel"><option value="daily" ${mode==='daily'?'selected':''}>${LANG==='ar'?'يومي':'Daily'}</option><option value="weekly" ${mode==='weekly'?'selected':''}>${LANG==='ar'?'أسبوعي':'Weekly'}</option></select></div>
-    <div class="cleg"><span><i class="lln"></i>${LANG==='ar'?'الصرف التراكمي':'Cumulative Spend'}</span><span><i class="lsq"></i>${LANG==='ar'?'الصرف اليومي':'Daily Spend'}</span><span><i class="lds"></i>${t('budget')}</span></div>
+    <div class="cleg"><span><i class="lln"></i>${LANG==='ar'?'التراكمي':'Cumulative'} <em class="axhint">${LANG==='ar'?'(يسار)':'(L)'}</em></span><span><i class="lsq"></i>${LANG==='ar'?'اليومي':'Daily'} <em class="axhint">${LANG==='ar'?'(يمين)':'(R)'}</em></span><span><i class="lds"></i>${t('budget')}</span></div>
     <div class="cbody">
-      <div class="csvg" dir="ltr"><svg viewBox="0 0 ${W} ${H}" width="100%">${grid}${bars}${ap?`<path d="${ap}" fill="rgba(46,230,166,.12)"/>`:''}${lp?`<path d="${lp}" fill="none" stroke="#2ee6a6" stroke-width="2"/>`:''}${bl}${pr}${xl}</svg></div>
+      <div class="csvg" dir="ltr"><svg id="spendsvg" viewBox="0 0 ${W} ${H}" width="100%">${grid}${raxis}${bars}${ap?`<path d="${ap}" fill="rgba(46,230,166,.12)"/>`:''}${lp?`<path d="${lp}" fill="none" stroke="#2ee6a6" stroke-width="2"/>`:''}${bl}${pr}${xl}${hits}<g id="barlabel"></g></svg></div>
       <div class="crail">
         <div><div class="rk">${st.isCur?(LANG==='ar'?'المتوقع نهاية الشهر':'Projected Month End'):(LANG==='ar'?'الإجمالي':'Total Spent')}</div><div class="rv ${pv}" style="color:var(--acc)">${sar(Math.round(proj))}</div></div>
         <div><div class="rk">${t('budget')}</div><div class="rv ${pv}">${sar(st.tb)}</div></div>
@@ -3088,6 +3128,34 @@ function bind(){
   });
   const cm=document.getElementById('chartmode');
   if(cm)cm.onchange=()=>{chartMode=cm.value;render();};
+  // Tap a daily/weekly bar to reveal its SAR amount as a small label above it.
+  const svg=document.getElementById('spendsvg');
+  if(svg){
+    const labelG=document.getElementById('barlabel');
+    const clearLabel=()=>{ if(labelG) labelG.innerHTML=''; svg.querySelectorAll('.barhit.active').forEach(h=>h.classList.remove('active')); };
+    svg.querySelectorAll('.barhit').forEach(hit=>{
+      hit.style.cursor='pointer';
+      hit.addEventListener('click',(e)=>{
+        e.stopPropagation();
+        const already=hit.classList.contains('active');
+        clearLabel();
+        if(already) return; // tapping the active bar dismisses it
+        hit.classList.add('active');
+        const bx=parseFloat(hit.dataset.bx), by=parseFloat(hit.dataset.by);
+        const val=parseInt(hit.dataset.bv,10);
+        const txt=(S.settings.privacy?'•••':sar(val));
+        // measure-free sizing: width scales with text length
+        const w=Math.max(26, txt.length*5.0+10), x=Math.min(Math.max(bx-w/2,2), 320-w-2);
+        const y=Math.max(by-16, 2);
+        labelG.innerHTML=`<g class="barlbl">
+          <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="13" rx="3" fill="#0b121f" stroke="#2c3a5c" stroke-width="0.6"/>
+          <text x="${(x+w/2).toFixed(1)}" y="${(y+9).toFixed(1)}" font-size="7.5" fill="#eaf0ff" text-anchor="middle" font-weight="700">${txt}</text>
+        </g>`;
+      });
+    });
+    // tapping empty chart area clears any open label
+    svg.addEventListener('click',clearLabel);
+  }
   const xf=document.getElementById('xlfile');
   if(xf)xf.onchange=()=>{ if(xf.files&&xf.files[0]) handleBudgetUpload(xf.files[0]); };
   // Supabase settings binds
