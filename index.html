@@ -981,7 +981,7 @@ function trackSheet(){
     const onCount=kids.filter(leafOn).length;
     const state = onCount===0?'off':onCount===kids.length?'on':'mixed';
     const expanded=trackExpanded.has(c.id);
-    const kidRows = expanded ? kids.map(k=>trackRowHTML(k, leafOn(k), true, c.id)).join('') : '';
+    const kidRows = expanded ? kids.map(k=>trackRowHTML(k, leafOn(k), false, c.id)).join('') : '';
     return trackRowHTML(c, state, true, null, expanded)+kidRows;
   }).join('');
   openSheet(`<h3>🎯 ${LANG==='ar'?'تتبّع':'Track'}</h3>
