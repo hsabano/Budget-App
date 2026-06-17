@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Awzin">
@@ -137,6 +137,104 @@ body.ar .txamt{text-align:left}
   border:none;color:#06281d;font-size:28px;font-weight:300;box-shadow:0 10px 30px rgba(46,230,166,.4);
   cursor:pointer;z-index:51;display:grid;place-items:center;transition:.15s}
 @media(max-width:480px){.fab{inset-inline-end:20px}}
+
+/* ── Tablet (600–1023px) ─────────────────────────────────────── */
+@media(min-width:600px){
+  #app{max-width:640px;padding-bottom:100px}
+  .nav{max-width:640px}
+  .nfab{inset-inline-end:calc(50% - 320px + 20px)}
+  .hrow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .row2{gap:14px}
+  .catcard{padding:13px 16px}
+  .trow{padding:12px 14px}
+  .spendsvg-wrap{max-width:100%}
+}
+
+/* ── Desktop (1024px+): sidebar nav + content area ───────────── */
+@media(min-width:1024px){
+  html,body{background:var(--bg2)}
+  #app-shell{display:flex;min-height:100vh}
+
+  /* Left sidebar */
+  #sidenav{
+    position:fixed;left:0;top:0;bottom:0;width:220px;
+    background:rgba(9,14,23,.97);border-right:1px solid var(--line);
+    display:flex;flex-direction:column;padding:28px 0 24px;z-index:60;
+    backdrop-filter:blur(20px)
+  }
+  [dir="rtl"] #sidenav{ left:auto;right:0;border-right:none;border-left:1px solid var(--line); }
+  [dir="rtl"] #app{ margin-left:0;margin-right:220px; }
+  #sidenav .sn-logo{
+    display:flex;align-items:center;gap:10px;padding:0 22px 28px;
+    font-size:18px;font-weight:800;color:var(--ink);letter-spacing:-.3px
+  }
+  #sidenav .sn-logo svg{width:28px;height:28px}
+  #sidenav .sn-btn{
+    display:flex;align-items:center;gap:12px;padding:11px 22px;
+    border:none;background:none;color:var(--ink3);font-family:inherit;
+    font-size:14px;font-weight:600;cursor:pointer;text-align:start;
+    border-radius:0;transition:background .15s,color .15s;position:relative;width:100%
+  }
+  #sidenav .sn-btn svg{width:20px;height:20px;stroke:currentColor;fill:none;
+    stroke-width:2;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  #sidenav .sn-btn:hover{background:var(--card);color:var(--ink)}
+  #sidenav .sn-btn.on{color:var(--acc);background:rgba(46,230,166,.08)}
+  #sidenav .sn-btn.on::before{
+    content:'';position:absolute;left:0;top:4px;bottom:4px;
+    width:3px;border-radius:0 3px 3px 0;background:var(--acc)
+  }
+  #sidenav .sn-badge{
+    margin-inline-start:auto;background:var(--bad);color:#fff;
+    font-size:10px;font-weight:800;min-width:18px;height:18px;
+    border-radius:999px;display:grid;place-items:center;padding:0 4px
+  }
+  #sidenav .sn-add{
+    margin:16px 16px 0;padding:12px;border-radius:14px;
+    background:linear-gradient(135deg,var(--acc),var(--acc2));
+    border:none;color:#06281d;font-size:15px;font-weight:700;
+    cursor:pointer;font-family:inherit;display:flex;align-items:center;
+    justify-content:center;gap:8px;transition:.15s
+  }
+  #sidenav .sn-add:hover{opacity:.9}
+  #sidenav .sn-add svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2.5}
+  #sidenav .sn-spacer{flex:1}
+
+  /* Hide mobile nav + mobile FAB on desktop */
+  .nav{display:none!important}
+  .nfab{display:none!important}
+
+  /* Main content */
+  #app{
+    margin-left:220px;max-width:none;width:calc(100vw - 220px);
+    min-height:100vh;padding-bottom:40px;
+    background:radial-gradient(120% 40% at 50% 0%, #0e1825 0%, var(--bg) 55%)
+  }
+  .view{max-width:960px;margin:0 auto;padding:28px 32px 0}
+
+  /* Dashboard 2-col grid */
+  .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+  .dash-grid .dash-col-full{grid-column:1/-1}
+
+  /* Wider chart SVG */
+  #spendsvg{width:100%}
+
+  /* Sheets stay centered */
+  .sheet-ov,.catpick-ov{background:rgba(0,0,0,.6)}
+  .sheet{max-width:560px;border-radius:20px;margin:auto;
+    position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+    border-bottom:1px solid var(--line);animation:modalin .2s ease}
+  @keyframes modalin{from{opacity:0;transform:translate(-50%,-48%)}to{opacity:1;transform:translate(-50%,-50%)}}
+  .catpick-sheet{max-width:520px;border-radius:20px;
+    margin:auto;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);
+    animation:modalin .2s ease;max-height:80vh}
+  .catpick-grab{display:none}
+
+  /* Settings / budget wider rows */
+  .bgh{padding:14px 18px}
+  .grprow{padding:12px 18px}
+  .leafrow{padding:8px 18px 8px 36px}
+  .trow{padding:14px 18px}
+}
 .fab:active{transform:scale(.9)}
 
 /* sheet / modal */
@@ -560,7 +658,7 @@ svg .barhit.active{}
 </style>
 </head>
 <body>
-<div id="app"></div>
+<div id="app-shell"><div id="sidenav" style="display:none"></div><div id="app"></div></div>
 <script>
 /* ============ i18n ============ */
 const T = {
@@ -1445,11 +1543,54 @@ async function bootAfterLogin(){
   else if(moved) toast(leafReconcileMsg(moved));
 }
 
+function sidenavHTML(){
+  const uncat=S.tx.filter(x=>!x.cat||x.cat==='uncat').length;
+  const items=[
+    ['dash', t('dash'), 'M3 9.5 12 3l9 6.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z'],
+    ['transactions', t('transactions'), 'M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2m-6 7h6m-6 4h4'],
+    ['budget', LANG==='ar'?'الميزانيات':'Budgets', 'M3 7h18v12H3zM3 7l3-3h12l3 3'],
+    ['reports', t('reports'), 'M4 19V5m6 14V9m6 10v-6m4 6V7'],
+    ['settings', t('settings'), 'M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm8.19-3c0-.34-.03-.67-.08-1l2.1-1.63-2-3.46-2.45.98a7.86 7.86 0 0 0-1.73-1l-.37-2.6h-4l-.37 2.6a7.86 7.86 0 0 0-1.73 1l-2.45-.98-2 3.46L5.89 11c-.05.33-.08.66-.08 1s.03.67.08 1l-2.1 1.63 2 3.46 2.45-.98c.54.39 1.12.72 1.73 1l.37 2.6h4l.37-2.6c.61-.28 1.19-.61 1.73-1l2.45.98 2-3.46L20.11 13c.05-.33.08-.66.08-1z'],
+  ];
+  const logoSvg=`<svg width="28" height="28" viewBox="0 0 24 24"><rect x="2.5" y="7.5" width="19" height="3.6" rx="1.8" fill="#2ee6a6"/><path d="M8.6 14 h6.8 L12 19.4 Z" fill="#2ee6a6"/></svg>`;
+  const btns=items.map(([k,l,p])=>`
+    <button class="sn-btn ${view===k?'on':''}" data-go="${k}">
+      <svg viewBox="0 0 24 24"><path d="${p}"/></svg>
+      ${l}
+      ${k==='budget'&&uncat>0?`<span class="sn-badge">${uncat}</span>`:''}
+    </button>`).join('');
+  const isOnBudget=view==='budget';
+  const addLabel=isOnBudget?(LANG==='ar'?'إضافة فئة':'Add Category'):(LANG==='ar'?'إضافة مصروف':'Add Expense');
+  const addAct=isOnBudget?(drillCat?'addsubhere':'addcat'):'addexpense';
+  return `
+    <div class="sn-logo">${logoSvg} Awzin</div>
+    ${btns}
+    <div class="sn-spacer"></div>
+    <button class="sn-add" data-act="${addAct}">
+      <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      ${addLabel}
+    </button>`;
+}
+function bindSidenav(){
+  const sn=document.getElementById('sidenav');
+  if(!sn) return;
+  sn.querySelectorAll('[data-go]').forEach(b=>b.onclick=()=>{ view=b.dataset.go; render(); });
+  sn.querySelectorAll('[data-act]').forEach(b=>b.onclick=()=>{ handleAct(b.dataset.act); });
+}
+
 function render(){
   if(!isLoggedIn()){ loginScreen(); return; }
   document.body.className=LANG==='ar'?'ar':'';
   document.documentElement.lang=LANG; document.documentElement.dir=LANG==='ar'?'rtl':'ltr';
   app.innerHTML = header() + periodBar() + viewHTML() + nav() + fab();
+  // Desktop sidenav
+  const sn=document.getElementById('sidenav');
+  if(sn){
+    const isDesktop=window.matchMedia('(min-width:1024px)').matches;
+    sn.style.display=isDesktop?'flex':'none';
+    if(isDesktop) sn.innerHTML=sidenavHTML();
+    bindSidenav();
+  }
   bind();
 }
 /* ---- Inline line-icons (stroke style, to match reference) ---- */
@@ -1714,13 +1855,20 @@ function dashView(){
   const st=dashStats();
   _lastSt=st; // expose for chart crosshair interaction
   const recent=[...S.tx].sort((a,b)=>txStamp(b)-txStamp(a)).slice(0,4);
+  const alert=alertCardHTML(st);
+  const topC=topCats().length?topCatsHTML(st):emptyCats();
+  const recentHTML=recent.length?`<div class="tcard">${recent.map(txRow).join('')}</div>`:`<div class="empty"><div class="e">🧾</div><p>${t('noTxD')}</p></div>`;
   return `<div class="view">
     <div class="hrow">${gaugeHTML(st)}${statusCardHTML(st)}</div>
-    ${spendChartHTML(st)}
-    ${alertCardHTML(st)}
-    ${topCats().length?topCatsHTML(st):emptyCats()}
-    <div class="sectit"><h2>${LANG==='ar'?'الأحدث':'RECENT'}</h2><a data-go="budget">${t('viewall')}</a></div>
-    ${recent.length?`<div class="tcard">${recent.map(txRow).join('')}</div>`:`<div class="empty"><div class="e">🧾</div><p>${t('noTxD')}</p></div>`}
+    <div class="dash-grid">
+      <div class="dash-col-full">${spendChartHTML(st)}</div>
+      ${alert?`<div class="dash-col-full">${alert}</div>`:''}
+      <div class="dash-col-full">${topC}</div>
+      <div class="dash-col-full">
+        <div class="sectit"><h2>${LANG==='ar'?'الأحدث':'RECENT'}</h2><a data-go="budget">${t('viewall')}</a></div>
+        ${recentHTML}
+      </div>
+    </div>
     <div class="note" style="text-align:center;margin-top:4px">${t('resetInfo')}</div>
   </div>`;
 }
@@ -3116,12 +3264,13 @@ function bind(){
   });
   const search=document.getElementById('search');
   if(search)search.oninput=()=>{searchQ=search.value;const cur=document.activeElement;render();const ns=document.getElementById('search');if(ns){ns.focus();ns.value=searchQ;ns.setSelectionRange(searchQ.length,searchQ.length);}};
-  document.querySelectorAll('[data-act]').forEach(el=>el.onclick=()=>{
-    const a=el.dataset.act;
+  document.querySelectorAll('[data-act]').forEach(el=>el.onclick=()=>{ handleAct(el.dataset.act, el); });
+
+function handleAct(a, el){
     if(a==='addexpense'){if(!S.cats.length){toast(t('needCat'));catSheet();return;}expenseSheet();}
     if(a==='addcat')catSheet();
     if(a==='addsubhere')catSheet(null, drillCat);
-    if(a==='addsubcat')catSheet(null, el.dataset.parent);
+    if(a==='addsubcat')catSheet(null, el?el.dataset.parent:null);
     if(a==='recover')recoverySheet();
     if(a==='exportbackup')exportBackup();
     if(a==='importsms')expenseSheet();
@@ -3173,7 +3322,7 @@ function bind(){
       ()=>signOut()); }
     if(a==='togprivacy'){S.settings.privacy=!S.settings.privacy;save();render();}
     if(a==='toglang'){LANG=LANG==='ar'?'en':'ar';localStorage.setItem('mizan_lang',LANG);render();}
-  });
+}
   const cm=document.getElementById('chartmode');
   if(cm)cm.onchange=()=>{chartMode=cm.value;render();};
   // Yahoo Finance-style crosshair: touch/mouse anywhere on the chart shows a
@@ -3311,6 +3460,12 @@ function handleInbound(){
   }catch(e){}
   return false;
 }
+// Re-render sidenav visibility on window resize (crossing the 1024px breakpoint)
+let _lastDesktop=window.matchMedia('(min-width:1024px)').matches;
+window.addEventListener('resize',()=>{
+  const isDesktop=window.matchMedia('(min-width:1024px)').matches;
+  if(isDesktop!==_lastDesktop){ _lastDesktop=isDesktop; render(); }
+});
 // Boot: handle auth first, then load data
 (async function boot(){
   // No Supabase config yet → show login (which will prompt for config)
