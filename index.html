@@ -274,7 +274,7 @@ svg .barhit.active{}
 .lsq{width:8px;height:8px;background:var(--acc);border-radius:2px;display:inline-block}
 .lds{width:14px;height:0;border-top:2px dashed #9fb0d4;display:inline-block}
 .cbody{display:flex;gap:8px;align-items:stretch}
-.csvg{flex:1;min-width:0}
+.csvg{flex:1;min-width:0;touch-action:none}
 .crail{flex:0 0 88px;display:flex;flex-direction:column;justify-content:center;gap:11px}
 .rk{font-size:9.5px;color:var(--ink3);font-weight:700;line-height:1.3}
 .rv{font-size:14px;font-weight:800;margin-top:2px}
@@ -860,7 +860,7 @@ async function loadFromCloud(){
   }catch(e){ console.warn('cloud load error',e); cloudReady=true; return false; }
 }
 
-let view='dash', period='month', customRange=null, drillCat=null, searchQ='', chartMode=null;
+let view='dash', period='month', customRange=null, drillCat=null, searchQ='', chartMode=null, _lastSt=null;
 // Transient UI state for the Track picker sheet (not persisted)
 let trackExpanded=new Set(), trackDraft=null;
 // Redesigned Budgets page UI state (not persisted): which parent groups are
@@ -1712,6 +1712,7 @@ function topCatsHTML(st){
 
 function dashView(){
   const st=dashStats();
+  _lastSt=st; // expose for chart crosshair interaction
   const recent=[...S.tx].sort((a,b)=>txStamp(b)-txStamp(a)).slice(0,4);
   return `<div class="view">
     <div class="hrow">${gaugeHTML(st)}${statusCardHTML(st)}</div>
@@ -3175,33 +3176,78 @@ function bind(){
   });
   const cm=document.getElementById('chartmode');
   if(cm)cm.onchange=()=>{chartMode=cm.value;render();};
-  // Tap a daily/weekly bar to reveal its SAR amount as a small label above it.
+  // Yahoo Finance-style crosshair: touch/mouse anywhere on the chart shows a
+  // vertical dotted line + tooltip with cumulative spend and daily/weekly bar value.
   const svg=document.getElementById('spendsvg');
   if(svg){
     const labelG=document.getElementById('barlabel');
-    const clearLabel=()=>{ if(labelG) labelG.innerHTML=''; svg.querySelectorAll('.barhit.active').forEach(h=>h.classList.remove('active')); };
-    svg.querySelectorAll('.barhit').forEach(hit=>{
-      hit.style.cursor='pointer';
-      hit.addEventListener('click',(e)=>{
-        e.stopPropagation();
-        const already=hit.classList.contains('active');
-        clearLabel();
-        if(already) return; // tapping the active bar dismisses it
-        hit.classList.add('active');
-        const bx=parseFloat(hit.dataset.bx), by=parseFloat(hit.dataset.by);
-        const val=parseInt(hit.dataset.bv,10);
-        const txt=(S.settings.privacy?'•••':sar(val));
-        // measure-free sizing: width scales with text length
-        const w=Math.max(26, txt.length*5.0+10), x=Math.min(Math.max(bx-w/2,2), 320-w-2);
-        const y=Math.max(by-16, 2);
-        labelG.innerHTML=`<g class="barlbl">
-          <rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${w.toFixed(1)}" height="13" rx="3" fill="#0b121f" stroke="#2c3a5c" stroke-width="0.6"/>
-          <text x="${(x+w/2).toFixed(1)}" y="${(y+9).toFixed(1)}" font-size="7.5" fill="#eaf0ff" text-anchor="middle" font-weight="700">${txt}</text>
+    const W=320,H=200,L=30,Rm=30,T=12,B=22,pH=H-T-B;
+    const st=_lastSt; // capture current render state
+    // Rebuild cumulative X positions for crosshair snapping
+    const days=st?st.daysInPeriod:30;
+    const mode=chartMode||(days>45?'weekly':'daily');
+    const pW=W-L-Rm;
+    const X=i=>L+pW*(i+0.5)/days;
+    const leftMax=st?niceAxisMax(Math.max(st.cum[days-1]||0, st.tb, st.projection||st.sp, 100),4):1;
+    const Y=v=>T+pH-pH*v/leftMax;
+    // Build bar series same way as render
+    let bseries=[];
+    if(st){
+      if(mode==='daily'){ st.daily.forEach((v,i)=>{ bseries.push({i,x:X(i),v}); }); }
+      else { const wk=Math.ceil(days/7);
+        for(let w=0;w<wk;w++){let v=0;for(let d=w*7;d<Math.min(days,(w+1)*7);d++)v+=st.daily[d]||0;
+          bseries.push({i:w, x:L+pW*(w+0.5)/wk, v}); }
+      }
+    }
+    const clearCrosshair=()=>{ if(labelG) labelG.innerHTML=''; };
+    const showCrosshair=(svgX)=>{
+      if(!st||svgX<L||svgX>W-Rm){ clearCrosshair(); return; }
+      // Snap to nearest day index
+      const rawI=(svgX-L)/pW*days-0.5;
+      const i=Math.round(Math.max(0,Math.min(days-1,rawI)));
+      const cx=X(i);
+      const cumVal=st.cum[i]||0;
+      const cy=Y(cumVal);
+      // Find matching bar
+      let barVal=0;
+      if(mode==='daily'){ barVal=st.daily[i]||0; }
+      else { const w=Math.floor(i/7); barVal=bseries[w]?bseries[w].v:0; }
+      const dayNum=i+1;
+      const priv=S.settings.privacy;
+      const cumTxt=priv?'•••':sar(Math.round(cumVal));
+      const barTxt=priv?'•••':sar(Math.round(barVal));
+      const label1=`${LANG==='ar'?'تراكمي':'Cum'}: ${cumTxt}`;
+      const label2=`${mode==='weekly'?(LANG==='ar'?'أسبوعي':'Wkly'):(LANG==='ar'?'يومي':'Day')}: ${barTxt}`;
+      const w1=label1.length*5.2+10, w2=label2.length*5.2+10;
+      const tw=Math.max(w1,w2)+4;
+      const th=28;
+      // Position tooltip: prefer right of line, flip left if too close to edge
+      let tx=cx+5; if(tx+tw>W-Rm) tx=cx-tw-5;
+      tx=Math.max(L+1,Math.min(W-Rm-tw-1,tx));
+      const ty=Math.max(T,Math.min(T+pH-th,cy-th/2));
+      labelG.innerHTML=`
+        <line x1="${cx.toFixed(1)}" y1="${T}" x2="${cx.toFixed(1)}" y2="${T+pH}" stroke="#4a5a7a" stroke-width="1" stroke-dasharray="3 3"/>
+        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3.5" fill="#2ee6a6" stroke="#0b121f" stroke-width="1.2"/>
+        <g>
+          <rect x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" width="${tw.toFixed(1)}" height="${th}" rx="4" fill="#0d1929" stroke="#2c3a5c" stroke-width="0.8"/>
+          <text x="${(tx+tw/2).toFixed(1)}" y="${(ty+10).toFixed(1)}" font-size="7" fill="#6b7da6" text-anchor="middle">Day ${dayNum}</text>
+          <text x="${(tx+6).toFixed(1)}" y="${(ty+19).toFixed(1)}" font-size="7" fill="#2ee6a6" text-anchor="start">${label1}</text>
+          <text x="${(tx+6).toFixed(1)}" y="${(ty+27).toFixed(1)}" font-size="7" fill="#ffb454" text-anchor="start">${label2}</text>
         </g>`;
-      });
-    });
-    // tapping empty chart area clears any open label
-    svg.addEventListener('click',clearLabel);
+    };
+    // Convert a touch/mouse event to SVG coordinate X
+    const toSvgX=(e)=>{
+      const rect=svg.getBoundingClientRect();
+      const clientX=e.touches?e.touches[0].clientX:e.clientX;
+      return (clientX-rect.left)/rect.width*W;
+    };
+    // Touch events (mobile primary)
+    svg.addEventListener('touchstart',(e)=>{ e.preventDefault(); showCrosshair(toSvgX(e)); },{passive:false});
+    svg.addEventListener('touchmove',(e)=>{ e.preventDefault(); showCrosshair(toSvgX(e)); },{passive:false});
+    svg.addEventListener('touchend',()=>{ setTimeout(clearCrosshair,1200); });
+    // Mouse events (desktop)
+    svg.addEventListener('mousemove',(e)=>showCrosshair(toSvgX(e)));
+    svg.addEventListener('mouseleave',clearCrosshair);
   }
   const xf=document.getElementById('xlfile');
   if(xf)xf.onchange=()=>{ if(xf.files&&xf.files[0]) handleBudgetUpload(xf.files[0]); };
