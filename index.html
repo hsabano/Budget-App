@@ -1055,33 +1055,72 @@ const isLeaf = c => c.parent || childrenOf(c.id).length===0;
 const allLeafIds = () => S.cats.filter(isLeaf).map(c=>c.id);
 
 /* ---- Track filter picker ---- */
-// Opens (or re-renders, on toggle) the "what to track" picker. trackDraft is
-// a Set of leaf category ids the user is currently choosing — null means "All".
+// Opens the "what to track" picker. On first call it builds the sheet DOM.
+// Subsequent calls from toggles ONLY patch checkbox states in place — no rebuild.
 function trackSheet(){
-  // trackSheet re-renders itself synchronously on every checkbox/chevron click.
-  // openSheet() always appends a new #scrim without removing a prior one, so
-  // without this the DOM accumulates duplicate #scrim/#trk_apply elements —
-  // closeSheet() is a safe no-op on first open (nothing to remove yet).
-  closeSheet();
+  const allLeafIds = ()=> S.cats.filter(isLeaf).map(c=>c.id);
+  const ensureExpanded = ()=>{ if(trackDraft.size===0) allLeafIds().forEach(id=>trackDraft.add(id)); };
+  const isClearAll = ()=> trackDraft.size===1 && trackDraft.has('__NONE__');
+
+  // Helper: compute checked state for a category
+  const leafOn = id => isClearAll() ? false : (trackDraft.size===0 || trackDraft.has(id));
+  const parentState = c => {
+    const kids=childrenOf(c.id);
+    const onCount=kids.filter(k=>leafOn(k.id)).length;
+    return onCount===0?'off':onCount===kids.length?'on':'mixed';
+  };
+
+  // Patch existing sheet checkbox states without rebuilding DOM
+  const patchSheet = ()=>{
+    const scrim=document.getElementById('scrim'); if(!scrim) return;
+    scrim.querySelectorAll('[data-track]').forEach(el=>{
+      const id=el.dataset.track;
+      if(id==='__all__'||id==='__none__') return;
+      const chk=el.querySelector('.trkchk'); if(!chk) return;
+      const c=catById(id);
+      const kids=c?childrenOf(c.id):[];
+      let on,mixed=false;
+      if(kids.length){ const st=parentState(c); on=st==='on'; mixed=st==='mixed'; }
+      else { on=leafOn(id); }
+      chk.className='trkchk'+(on?' on':mixed?' mixed':'');
+      chk.textContent=on?'✓':mixed?'–':'';
+    });
+    // Update chevrons for expanded state
+    scrim.querySelectorAll('[data-chevron]').forEach(el=>{
+      el.textContent=trackExpanded.has(el.dataset.chevron)?'▾':'▸';
+    });
+    // Show/hide child rows based on expand state
+    scrim.querySelectorAll('[data-parentid]').forEach(el=>{
+      const pid=el.dataset.parentid;
+      el.style.display=trackExpanded.has(pid)?'':'none';
+    });
+  };
+
+  // If sheet already open, just patch it — no DOM rebuild, no flash
+  if(document.getElementById('scrim')){ patchSheet(); return; }
+
+  // First open: build the full sheet HTML with ALL child rows pre-rendered (hidden)
   if(trackDraft===null){
     const f=S.settings.trackFilter;
-    trackDraft = (f&&f.length) ? new Set(trackedLeafIds()||[]) : (f&&f.length===0 ? new Set(['__NONE__']) : new Set()); // expand any legacy top-level ids to leaves
+    trackDraft = (f&&f.length) ? new Set(trackedLeafIds()||[]) : (f&&f.length===0 ? new Set(['__NONE__']) : new Set());
   }
-  const _clearAll = trackDraft.size===1 && trackDraft.has('__NONE__');
-  const _allLeafIds = ()=> S.cats.filter(isLeaf).map(c=>c.id);
+
   const rows = topCats().map(c=>{
     const kids=childrenOf(c.id);
     if(!kids.length){
-      const on=_clearAll ? false : (trackDraft.size===0 || trackDraft.has(c.id));
-      return trackRowHTML(c, on, false, null);
+      return trackRowHTML(c, leafOn(c.id), false, null);
     }
-    const leafOn = k=> _clearAll ? false : (trackDraft.size===0 || trackDraft.has(k.id));
-    const onCount=kids.filter(leafOn).length;
-    const state = onCount===0?'off':onCount===kids.length?'on':'mixed';
+    const st=parentState(c);
     const expanded=trackExpanded.has(c.id);
-    const kidRows = expanded ? kids.map(k=>trackRowHTML(k, leafOn(k), false, c.id)).join('') : '';
-    return trackRowHTML(c, state, true, null, expanded)+kidRows;
+    // Render ALL children, just hidden if not expanded — avoids DOM rebuild on expand
+    const kidRows=kids.map(k=>{
+      const row=trackRowHTML(k, leafOn(k.id), false, c.id);
+      // Inject data-parentid and initial display style
+      return row.replace('<div class="catcard"', `<div class="catcard" data-parentid="${c.id}" style="display:${expanded?'':'none'}"`)
+    }).join('');
+    return trackRowHTML(c, st, true, null, expanded)+kidRows;
   }).join('');
+
   openSheet(`<h3>🎯 ${LANG==='ar'?'تتبّع':'Track'}</h3>
     <p class="note">${LANG==='ar'
       ?'اختر الفئات التي تريد تتبعها في لوحة التحكم. العناصر غير المحددة (مثل القروض) لن تُحسب.'
@@ -1092,50 +1131,126 @@ function trackSheet(){
     </div>
     ${rows}
     <button class="btn btn-pri" id="trk_apply" style="margin-top:14px">${LANG==='ar'?'تطبيق':'Apply'}</button>`);
-  // trackDraft semantics:
-  //   null              = not yet initialized
-  //   Set()             = "all selected" (size===0, legacy)
-  //   Set(['__NONE__']) = "clear all" — nothing tracked
-  //   Set([...ids])     = explicit leaf selection
-  const allLeafIds = ()=> S.cats.filter(isLeaf).map(c=>c.id);
-  // If draft is "all" (empty), expand to explicit set so one leaf can be unchecked
-  const ensureExpanded = ()=>{ if(trackDraft.size===0) allLeafIds().forEach(id=>trackDraft.add(id)); };
-  const isClearAll = ()=> trackDraft.size===1 && trackDraft.has('__NONE__');
+
+  // Bind click handlers once — they mutate trackDraft and call patchSheet()
   document.getElementById('scrim').querySelectorAll('[data-track]').forEach(el=>el.onclick=(e)=>{
     e.stopPropagation();
     const id=el.dataset.track;
-    // Select All: every leaf explicitly checked
-    if(id==='__all__'){ trackDraft=new Set(allLeafIds()); trackSheet(); return; }
-    // Clear All: sentinel meaning "nothing tracked"
-    if(id==='__none__'){ trackDraft=new Set(['__NONE__']); trackSheet(); return; }
-    if(isClearAll()){ trackDraft=new Set(); } // reset from cleared state before toggling
-    if(el.dataset.expand!==undefined){ // parent row: toggle all its children
+    if(id==='__all__'){ trackDraft=new Set(allLeafIds()); patchSheet(); return; }
+    if(id==='__none__'){ trackDraft=new Set(['__NONE__']); patchSheet(); return; }
+    if(isClearAll()){ trackDraft=new Set(); }
+    if(el.dataset.expand!==undefined){
       ensureExpanded();
       const kids=childrenOf(id);
       const allOn=kids.every(k=>trackDraft.has(k.id));
       kids.forEach(k=> allOn ? trackDraft.delete(k.id) : trackDraft.add(k.id));
-      trackSheet(); return;
+      patchSheet(); return;
     }
-    // leaf row — expand "all" first so we can remove just this one
     ensureExpanded();
     trackDraft.has(id) ? trackDraft.delete(id) : trackDraft.add(id);
-    trackSheet();
+    patchSheet();
   });
+
   document.getElementById('scrim').querySelectorAll('[data-chevron]').forEach(el=>el.onclick=(e)=>{
     e.stopPropagation();
     const id=el.dataset.chevron;
     trackExpanded.has(id)?trackExpanded.delete(id):trackExpanded.add(id);
-    trackSheet();
+    patchSheet();
   });
+
   document.getElementById('trk_apply').onclick=()=>{
     const isClear = trackDraft.size===1 && trackDraft.has('__NONE__');
-    // null = track all; [] = track none; [...ids] = explicit selection
     S.settings.trackFilter = isClear ? [] : (trackDraft.size ? [...trackDraft] : null);
     markDirty('settings','main');
     trackDraft=null; trackExpanded=new Set();
-    save(); closeSheet(); render();
+    save();
+    closeSheet();
+    // Patch only the content area — no full page rebuild
+    patchDashboardOnly();
   };
 }
+function bindSpendChartCrosshair(){
+  const svg=document.getElementById('spendsvg');
+  if(!svg) return;
+  const labelG=document.getElementById('barlabel');
+  const W=320,H=200,L=30,Rm=30,T=12,B=22,pH=H-T-B;
+  const st=_lastSt;
+  const days=st?st.daysInPeriod:30;
+  const mode=chartMode||(days>45?'weekly':'daily');
+  const pW=W-L-Rm;
+  const X=i=>L+pW*(i+0.5)/days;
+  const leftMax=st?niceAxisMax(Math.max(st.cum[days-1]||0,st.tb,st.projection||st.sp,100),4):1;
+  const Y=v=>T+pH-pH*v/leftMax;
+  let bseries=[];
+  if(st){
+    if(mode==='daily'){ st.daily.forEach((v,i)=>bseries.push({i,x:X(i),v})); }
+    else { const wk=Math.ceil(days/7); for(let w=0;w<wk;w++){let v=0;for(let d=w*7;d<Math.min(days,(w+1)*7);d++)v+=st.daily[d]||0; bseries.push({i:w,x:L+pW*(w+0.5)/wk,v});} }
+  }
+  const clearCrosshair=()=>{ if(labelG) labelG.innerHTML=''; };
+  const showCrosshair=(svgX)=>{
+    if(!st||svgX<L||svgX>W-Rm){ clearCrosshair(); return; }
+    const i=Math.round(Math.max(0,Math.min(days-1,(svgX-L)/pW*days-0.5)));
+    const cx=X(i), cumVal=st.cum[i]||0, cy=Y(cumVal);
+    const barVal=mode==='daily'?(st.daily[i]||0):(bseries[Math.floor(i/7)]?.v||0);
+    const priv=S.settings.privacy;
+    const cumTxt=priv?'\u2022\u2022\u2022':sar(Math.round(cumVal));
+    const barTxt=priv?'\u2022\u2022\u2022':sar(Math.round(barVal));
+    const l1=(LANG==='ar'?'\u062a\u0631\u0627\u0643\u0645\u064a':'Cum')+': '+cumTxt;
+    const l2=(mode==='weekly'?(LANG==='ar'?'\u0623\u0633\u0628\u0648\u0639\u064a':'Wkly'):(LANG==='ar'?'\u064a\u0648\u0645\u064a':'Day'))+': '+barTxt;
+    const tw=Math.max(l1.length,l2.length)*5.2+14, th=28;
+    let tx=cx+5; if(tx+tw>W-Rm) tx=cx-tw-5;
+    tx=Math.max(L+1,Math.min(W-Rm-tw-1,tx));
+    const ty=Math.max(T,Math.min(T+pH-th,cy-th/2));
+    labelG.innerHTML=
+      '<line x1="'+cx.toFixed(1)+'" y1="'+T+'" x2="'+cx.toFixed(1)+'" y2="'+(T+pH)+'" stroke="#4a5a7a" stroke-width="1" stroke-dasharray="3 3"/>'+
+      '<circle cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="3.5" fill="#2ee6a6" stroke="#0b121f" stroke-width="1.2"/>'+
+      '<rect x="'+tx.toFixed(1)+'" y="'+ty.toFixed(1)+'" width="'+tw.toFixed(1)+'" height="'+th+'" rx="4" fill="#0d1929" stroke="#2c3a5c" stroke-width="0.8"/>'+
+      '<text x="'+(tx+tw/2).toFixed(1)+'" y="'+(ty+10).toFixed(1)+'" font-size="7" fill="#6b7da6" text-anchor="middle">Day '+(i+1)+'</text>'+
+      '<text x="'+(tx+6).toFixed(1)+'" y="'+(ty+19).toFixed(1)+'" font-size="7" fill="#2ee6a6" text-anchor="start">'+l1+'</text>'+
+      '<text x="'+(tx+6).toFixed(1)+'" y="'+(ty+27).toFixed(1)+'" font-size="7" fill="#ffb454" text-anchor="start">'+l2+'</text>';
+  };
+  const toSvgX=e=>{ const r=svg.getBoundingClientRect(),cx=e.touches?e.touches[0].clientX:e.clientX; return (cx-r.left)/r.width*W; };
+  svg.addEventListener('touchstart',e=>{ e.preventDefault(); showCrosshair(toSvgX(e)); },{passive:false});
+  svg.addEventListener('touchmove',e=>{ e.preventDefault(); showCrosshair(toSvgX(e)); },{passive:false});
+  svg.addEventListener('touchend',()=>setTimeout(clearCrosshair,1200));
+  svg.addEventListener('mousemove',e=>showCrosshair(toSvgX(e)));
+  svg.addEventListener('mouseleave',clearCrosshair);
+}
+
+function patchDashboardOnly(){
+  // 1. Update track pill without rebuilding page
+  const trackPill=document.querySelector('.trackpill');
+  if(trackPill){
+    const tracking=isTracking();
+    const trackLbl=tracking?trackFilterLabel():(LANG==='ar'?'\u0627\u0644\u0643\u0644':'All');
+    trackPill.className='periodpill trackpill'+(tracking?' active':'');
+    trackPill.innerHTML='\uD83C\uDFAF '+trackLbl+' <span style="color:var(--ink3)">▾</span>';
+    trackPill.onclick=()=>{ trackDraft=null; trackSheet(); };
+  }
+  // 2. Swap only the .view content, no animation, no flash
+  const viewEl=document.querySelector('.view');
+  if(viewEl){
+    const tmp=document.createElement('div');
+    tmp.innerHTML=viewHTML();
+    const newView=tmp.querySelector('.view');
+    if(newView){
+      viewEl.style.animation='none';
+      viewEl.innerHTML=newView.innerHTML;
+      bindViewInteractions();
+    }
+  }
+}
+
+function bindViewInteractions(){
+  document.querySelectorAll('.view [data-go]').forEach(el=>el.onclick=()=>{ view=el.dataset.go; render(); });
+  document.querySelectorAll('.view [data-act]').forEach(el=>el.onclick=()=>handleAct(el.dataset.act,el));
+  document.querySelectorAll('[data-drill]').forEach(el=>el.onclick=()=>{ drillCat=el.dataset.drill; view='budget'; render(); });
+  const cm=document.getElementById('chartmode');
+  if(cm) cm.onchange=()=>{ chartMode=cm.value; render(); };
+  bindSpendChartCrosshair();
+}
+
+
 function trackRowHTML(c, state, isParent, parentId, expanded){
   // state: true/false for leaves, or 'on'/'off'/'mixed' for parent rows
   const on = state===true || state==='on';
@@ -3325,80 +3440,8 @@ function handleAct(a, el){
 }
   const cm=document.getElementById('chartmode');
   if(cm)cm.onchange=()=>{chartMode=cm.value;render();};
-  // Yahoo Finance-style crosshair: touch/mouse anywhere on the chart shows a
-  // vertical dotted line + tooltip with cumulative spend and daily/weekly bar value.
-  const svg=document.getElementById('spendsvg');
-  if(svg){
-    const labelG=document.getElementById('barlabel');
-    const W=320,H=200,L=30,Rm=30,T=12,B=22,pH=H-T-B;
-    const st=_lastSt; // capture current render state
-    // Rebuild cumulative X positions for crosshair snapping
-    const days=st?st.daysInPeriod:30;
-    const mode=chartMode||(days>45?'weekly':'daily');
-    const pW=W-L-Rm;
-    const X=i=>L+pW*(i+0.5)/days;
-    const leftMax=st?niceAxisMax(Math.max(st.cum[days-1]||0, st.tb, st.projection||st.sp, 100),4):1;
-    const Y=v=>T+pH-pH*v/leftMax;
-    // Build bar series same way as render
-    let bseries=[];
-    if(st){
-      if(mode==='daily'){ st.daily.forEach((v,i)=>{ bseries.push({i,x:X(i),v}); }); }
-      else { const wk=Math.ceil(days/7);
-        for(let w=0;w<wk;w++){let v=0;for(let d=w*7;d<Math.min(days,(w+1)*7);d++)v+=st.daily[d]||0;
-          bseries.push({i:w, x:L+pW*(w+0.5)/wk, v}); }
-      }
-    }
-    const clearCrosshair=()=>{ if(labelG) labelG.innerHTML=''; };
-    const showCrosshair=(svgX)=>{
-      if(!st||svgX<L||svgX>W-Rm){ clearCrosshair(); return; }
-      // Snap to nearest day index
-      const rawI=(svgX-L)/pW*days-0.5;
-      const i=Math.round(Math.max(0,Math.min(days-1,rawI)));
-      const cx=X(i);
-      const cumVal=st.cum[i]||0;
-      const cy=Y(cumVal);
-      // Find matching bar
-      let barVal=0;
-      if(mode==='daily'){ barVal=st.daily[i]||0; }
-      else { const w=Math.floor(i/7); barVal=bseries[w]?bseries[w].v:0; }
-      const dayNum=i+1;
-      const priv=S.settings.privacy;
-      const cumTxt=priv?'•••':sar(Math.round(cumVal));
-      const barTxt=priv?'•••':sar(Math.round(barVal));
-      const label1=`${LANG==='ar'?'تراكمي':'Cum'}: ${cumTxt}`;
-      const label2=`${mode==='weekly'?(LANG==='ar'?'أسبوعي':'Wkly'):(LANG==='ar'?'يومي':'Day')}: ${barTxt}`;
-      const w1=label1.length*5.2+10, w2=label2.length*5.2+10;
-      const tw=Math.max(w1,w2)+4;
-      const th=28;
-      // Position tooltip: prefer right of line, flip left if too close to edge
-      let tx=cx+5; if(tx+tw>W-Rm) tx=cx-tw-5;
-      tx=Math.max(L+1,Math.min(W-Rm-tw-1,tx));
-      const ty=Math.max(T,Math.min(T+pH-th,cy-th/2));
-      labelG.innerHTML=`
-        <line x1="${cx.toFixed(1)}" y1="${T}" x2="${cx.toFixed(1)}" y2="${T+pH}" stroke="#4a5a7a" stroke-width="1" stroke-dasharray="3 3"/>
-        <circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="3.5" fill="#2ee6a6" stroke="#0b121f" stroke-width="1.2"/>
-        <g>
-          <rect x="${tx.toFixed(1)}" y="${ty.toFixed(1)}" width="${tw.toFixed(1)}" height="${th}" rx="4" fill="#0d1929" stroke="#2c3a5c" stroke-width="0.8"/>
-          <text x="${(tx+tw/2).toFixed(1)}" y="${(ty+10).toFixed(1)}" font-size="7" fill="#6b7da6" text-anchor="middle">Day ${dayNum}</text>
-          <text x="${(tx+6).toFixed(1)}" y="${(ty+19).toFixed(1)}" font-size="7" fill="#2ee6a6" text-anchor="start">${label1}</text>
-          <text x="${(tx+6).toFixed(1)}" y="${(ty+27).toFixed(1)}" font-size="7" fill="#ffb454" text-anchor="start">${label2}</text>
-        </g>`;
-    };
-    // Convert a touch/mouse event to SVG coordinate X
-    const toSvgX=(e)=>{
-      const rect=svg.getBoundingClientRect();
-      const clientX=e.touches?e.touches[0].clientX:e.clientX;
-      return (clientX-rect.left)/rect.width*W;
-    };
-    // Touch events (mobile primary)
-    svg.addEventListener('touchstart',(e)=>{ e.preventDefault(); showCrosshair(toSvgX(e)); },{passive:false});
-    svg.addEventListener('touchmove',(e)=>{ e.preventDefault(); showCrosshair(toSvgX(e)); },{passive:false});
-    svg.addEventListener('touchend',()=>{ setTimeout(clearCrosshair,1200); });
-    // Mouse events (desktop)
-    svg.addEventListener('mousemove',(e)=>showCrosshair(toSvgX(e)));
-    svg.addEventListener('mouseleave',clearCrosshair);
-  }
-  const xf=document.getElementById('xlfile');
+  bindSpendChartCrosshair();
+    const xf=document.getElementById('xlfile');
   if(xf)xf.onchange=()=>{ if(xf.files&&xf.files[0]) handleBudgetUpload(xf.files[0]); };
   // Supabase settings binds
   const sbSave=document.getElementById('sb_save');
