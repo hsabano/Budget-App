@@ -754,7 +754,7 @@ const DEFAULT = {
   // trackFilter: null = track everything (default). Otherwise an array of
   // category ids the user wants to focus on — can mix top-level (parent)
   // ids and individual leaf/child ids. See trackedLeafIds() for expansion.
-  settings:{privacy:false,hijri:false,trackFilter:null,hideDonut:false,groupBy:'parent'},
+  settings:{privacy:false,hijri:false,trackFilter:null,hideDonut:false,groupBy:'parent',cycleDay:1},
   // Tracks ids the user actually changed locally, by bucket. Push only sends
   // these — never a full snapshot — so a stale session with an empty dirty
   // set can push without overwriting anything another session changed.
@@ -768,6 +768,7 @@ if(!S.dirty.settings) S.dirty.settings=[]; // migrate data saved before the sett
 if(S.settings && S.settings.trackFilter===undefined) S.settings.trackFilter=null; // migrate older local data
 if(S.settings && S.settings.hideDonut===undefined) S.settings.hideDonut=false; // Budget Overview ("budget donut") visibility
 if(S.settings && S.settings.groupBy===undefined) S.settings.groupBy='parent'; // Budget Groups grouping: 'parent' | 'sub'
+if(S.settings && S.settings.cycleDay===undefined) S.settings.cycleDay=1; // Budget cycle start day (1–28)
 // Data integrity: a parent category that HAS leaf children must never carry its
 // own budget amount — its total is the sum of its children. Childless parents
 // (true leaves) keep their budget. Runs once on load and is also enforced in the
@@ -1334,13 +1335,40 @@ function catSpentTracked(c,list){
   return list.filter(x=>ids.includes(x.cat)&&tracked.has(x.cat)).reduce((a,x)=>a+x.amount,0);
 }
 
+// Returns the [start, end] Date pair for a budget cycle anchored to cycleDay.
+// cycleDay=1 → behaves exactly like a calendar month.
+// cycleDay=25 → cycle runs 25th→24th regardless of calendar month boundary.
+function cycleRange(offset){
+  // offset: 0 = current cycle, -1 = previous cycle
+  const cd = Math.min(28, Math.max(1, S.settings.cycleDay||1));
+  const now = new Date();
+  const today = now.getDate();
+  // Determine the start month of the CURRENT cycle
+  // If today >= cycleDay, current cycle started this month; else last month
+  let startYear = now.getFullYear();
+  let startMonth = now.getMonth(); // 0-indexed
+  if(today < cd){ startMonth -= 1; if(startMonth < 0){ startMonth = 11; startYear -= 1; } }
+  // Apply offset (0 = current, -1 = previous)
+  startMonth += offset;
+  if(startMonth < 0){ startMonth += 12; startYear -= 1; }
+  if(startMonth > 11){ startMonth -= 12; startYear += 1; }
+  const s = new Date(startYear, startMonth, cd, 0, 0, 0);
+  // End = one day before cycleDay next month (i.e. cycleDay-1 of following month, end of day)
+  let endMonth = startMonth + 1, endYear = startYear;
+  if(endMonth > 11){ endMonth = 0; endYear += 1; }
+  // End date is the day before the next cycle starts
+  const e = new Date(endYear, endMonth, cd - 1, 23, 59, 59);
+  // Edge: if cd=1, end = last day of startMonth
+  // This is naturally handled: endMonth=startMonth+1, cd-1=0 → Date(y,m,0) = last day of m-1
+  return [s, e];
+}
+
 function periodRange(){
-  const now=new Date();
-  if(period==='month'){const s=new Date(now.getFullYear(),now.getMonth(),1);const e=new Date(now.getFullYear(),now.getMonth()+1,0,23,59,59);return[s,e];}
-  if(period==='last'){const s=new Date(now.getFullYear(),now.getMonth()-1,1);const e=new Date(now.getFullYear(),now.getMonth(),0,23,59,59);return[s,e];}
-  if(period==='ytd'){const s=new Date(now.getFullYear(),0,1);return[s,now];}
+  if(period==='month') return cycleRange(0);
+  if(period==='last')  return cycleRange(-1);
+  if(period==='ytd'){const s=new Date(new Date().getFullYear(),0,1);return[s,new Date()];}
   if(period==='custom'&&customRange){return[new Date(customRange[0]),new Date(customRange[1]+'T23:59:59')];}
-  const s=new Date(now.getFullYear(),now.getMonth(),1);const e=new Date(now.getFullYear(),now.getMonth()+1,0,23,59,59);return[s,e];
+  return cycleRange(0);
 }
 function txInPeriod(){
   const[s,e]=periodRange();
@@ -1781,8 +1809,9 @@ function dashStats(){
   const msDay=86400000;
   const daysInPeriod=Math.max(1,Math.floor((pe-ps)/msDay)+1);
   const now=new Date();
-  const isCur=period==='month';
-  const dayOf=isCur?Math.min(now.getDate(),daysInPeriod):daysInPeriod;
+  // isCur: true when the selected period contains today (cycle or calendar month)
+  const isCur=(period==='month') || (period==='custom' && customRange && now>=new Date(customRange[0]) && now<=new Date(customRange[1]+'T23:59:59'));
+  const dayOf=isCur?Math.min(Math.max(1,Math.floor((now-ps)/msDay)+1),daysInPeriod):daysInPeriod;
   const dayFrac=dayOf/daysInPeriod;
   const expected=tb*dayFrac;
   const pace=expected>0?sp/expected:0;
@@ -1984,7 +2013,7 @@ function dashView(){
         ${recentHTML}
       </div>
     </div>
-    <div class="note" style="text-align:center;margin-top:4px">${t('resetInfo')}</div>
+    <div class="note" style="text-align:center;margin-top:4px">${(()=>{const cd=S.settings.cycleDay||1;return cd===1?t('resetInfo'):(LANG==='ar'?`الدورة تبدأ يوم ${cd} من كل شهر · يُحفظ السجل`:`Cycle resets on the ${cd}${cd===1?'st':cd===2?'nd':cd===3?'rd':'th'} · history is kept`);})()}</div>
   </div>`;
 }
 function catCard(c,list){
@@ -2029,8 +2058,8 @@ function budgetStats(){
   const msDay=86400000;
   const daysInPeriod=Math.max(1,Math.floor((pe-ps)/msDay)+1);
   const now=new Date();
-  const isCur=period==='month';
-  const dayOf=isCur?Math.min(now.getDate(),daysInPeriod):daysInPeriod;
+  const isCur=(period==='month') || (period==='custom' && customRange && now>=new Date(customRange[0]) && now<=new Date(customRange[1]+'T23:59:59'));
+  const dayOf=isCur?Math.min(Math.max(1,Math.floor((now-ps)/msDay)+1),daysInPeriod):daysInPeriod;
   const dayFrac=dayOf/daysInPeriod;
   const expected=tb*dayFrac;
   const pace=expected>0?sp/expected:0;
@@ -2461,6 +2490,25 @@ function settingsView(){
     ${toggleRow('🙈',t('privacy'),t('privacyD'),S.settings.privacy,'togprivacy')}
     ${toggleRow('🌙',t('lang'),'EN / العربية',false,'toglang',true)}
 
+    <!-- BUDGET CYCLE -->
+    <div class="sectit"><h2>📅 ${LANG==='ar'?'دورة الميزانية':'Budget Cycle'}</h2></div>
+    <div class="sbcard" style="padding:16px 18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+        <div>
+          <div style="font-size:14px;font-weight:700;color:var(--ink)">${LANG==='ar'?'يوم بداية الدورة':'Cycle Start Day'}</div>
+          <div style="font-size:12px;color:var(--ink3);margin-top:3px">${LANG==='ar'?'اليوم الذي تبدأ فيه ميزانيتك كل شهر — عادةً يوم الراتب':'The day your budget resets each month — usually your salary day'}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+          <button id="cycleday-dec" style="width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:18px;cursor:pointer;display:grid;place-items:center">−</button>
+          <div id="cycleday-val" style="min-width:42px;text-align:center;font-size:20px;font-weight:800;color:var(--acc)">${S.settings.cycleDay||1}</div>
+          <button id="cycleday-inc" style="width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:18px;cursor:pointer;display:grid;place-items:center">+</button>
+        </div>
+      </div>
+      ${(S.settings.cycleDay||1)!==1?`<div style="margin-top:12px;padding:10px 12px;background:var(--card2);border-radius:10px;font-size:12px;color:var(--ink2)">
+        💡 ${LANG==='ar'?`دورتك الحالية: ${periodLabel()}`:`Current cycle: ${periodLabel()}`}
+      </div>`:''}
+    </div>
+
     <!-- SUPABASE LIVE SYNC -->
     <div class="sectit"><h2>📲 ${LANG==='ar'?'المزامنة التلقائية':'Live SMS Sync'}</h2></div>
     <div class="sbcard">
@@ -2573,7 +2621,23 @@ function nav(){
 }
 function fab(){ return ''; }
 
-function periodLabel(){const m={month:t('thisMonth'),last:t('lastMonth'),ytd:t('ytd'),custom:t('custom')};return m[period];}
+function periodLabel(){
+  const cd=S.settings.cycleDay||1;
+  if(period==='ytd') return t('ytd');
+  if(period==='custom') return t('custom');
+  if(cd===1){
+    return period==='month'?t('thisMonth'):t('lastMonth');
+  }
+  // Custom cycle: show "Cycle: 25 Jun – 24 Jul" style label
+  const [s,e]=periodRange();
+  const fmt=d=>d.getDate()+' '+(LANG==='ar'
+    ?['يناير','فبراير','مارس','أبريل','مايو','يونيو','يوليو','أغسطس','سبتمبر','أكتوبر','نوفمبر','ديسمبر'][d.getMonth()]
+    :['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'][d.getMonth()]);
+  const lbl=`${fmt(s)} – ${fmt(e)}`;
+  return period==='month'
+    ?(LANG==='ar'?`الدورة: ${lbl}`:`Cycle: ${lbl}`)
+    :(LANG==='ar'?`السابقة: ${lbl}`:`Prev: ${lbl}`);
+}
 // Sortable timestamp: combines date with time-of-day when known, so same-day
 // transactions order correctly (newest first) instead of by insertion order.
 function txStamp(x){
@@ -3160,7 +3224,11 @@ function notifSheet(){
 }
 function periodSheet(){
   openSheet(`<h3>📅 ${LANG==='ar'?'الفترة':'Period'}</h3>
-    ${[['month',t('thisMonth')],['last',t('lastMonth')],['ytd',t('ytd')]].map(([k,l])=>`<button class="btn ${period===k?'btn-pri':'btn-ghost'}" data-p="${k}" style="margin-top:10px">${l}</button>`).join('')}
+    ${(()=>{const cd=S.settings.cycleDay||1; const usesCycle=cd!==1;
+      const lbl1=usesCycle?(LANG==='ar'?'الدورة الحالية':'This Cycle'):t('thisMonth');
+      const lbl2=usesCycle?(LANG==='ar'?'الدورة السابقة':'Last Cycle'):t('lastMonth');
+      return [['month',lbl1],['last',lbl2],['ytd',t('ytd')]].map(([k,l])=>`<button class="btn ${period===k?'btn-pri':'btn-ghost'}" data-p="${k}" style="margin-top:10px">${l}</button>`).join('');
+    })()}
     <button class="btn ${period==='custom'?'btn-pri':'btn-ghost'}" id="pcust" style="margin-top:10px">${t('custom')}</button>
     <div id="custbox" class="${period==='custom'?'':'hidden'}">
       <div class="row2"><div><label>${LANG==='ar'?'من':'From'}</label><input type="date" id="pc0" value="${customRange?customRange[0]:''}"></div>
@@ -3445,6 +3513,23 @@ function handleAct(a, el){
   if(xf)xf.onchange=()=>{ if(xf.files&&xf.files[0]) handleBudgetUpload(xf.files[0]); };
   // Supabase settings binds
   const sbSave=document.getElementById('sb_save');
+  // Cycle day stepper
+  const _cycleDec=document.getElementById('cycleday-dec');
+  const _cycleInc=document.getElementById('cycleday-inc');
+  const _cycleVal=document.getElementById('cycleday-val');
+  if(_cycleDec&&_cycleInc&&_cycleVal){
+    const updateCycle=(delta)=>{
+      const cur=S.settings.cycleDay||1;
+      const next=Math.min(28,Math.max(1,cur+delta));
+      if(next===cur) return;
+      S.settings.cycleDay=next;
+      markDirty('settings','main');
+      save();
+      render(); // period labels and cycle preview need full update
+    };
+    _cycleDec.onclick=()=>updateCycle(-1);
+    _cycleInc.onclick=()=>updateCycle(+1);
+  }
   if(sbSave)sbSave.onclick=async()=>{
     const url=(document.getElementById('sb_url').value||'').trim().replace(/\/$/,'');
     const key=(document.getElementById('sb_key').value||'').trim();
