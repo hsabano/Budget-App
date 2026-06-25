@@ -32,7 +32,9 @@ body.ar{font-family:'IBM Plex Sans Arabic',sans-serif}
   background:radial-gradient(120% 60% at 50% 0%, #0e1825 0%, var(--bg) 55%);
   position:relative;padding-bottom:96px}
 .hidden{display:none!important}
-.bal-hidden{filter:blur(9px);transition:filter .2s}
+.bal-hidden{filter:blur(9px)}
+body.privacy-on .bal{filter:blur(9px);user-select:none}
+body:not(.privacy-on) .bal{filter:none;transition:filter .25s ease}
 
 /* Header */
 .top{padding:calc(env(safe-area-inset-top) + 18px) 20px 12px;display:flex;
@@ -1193,7 +1195,7 @@ function bindSpendChartCrosshair(){
     const i=Math.round(Math.max(0,Math.min(days-1,(svgX-L)/pW*days-0.5)));
     const cx=X(i), cumVal=st.cum[i]||0, cy=Y(cumVal);
     const barVal=mode==='daily'?(st.daily[i]||0):(bseries[Math.floor(i/7)]?.v||0);
-    const priv=S.settings.privacy;
+    const priv=document.body.classList.contains('privacy-on');
     const cumTxt=priv?'\u2022\u2022\u2022':sar(Math.round(cumVal));
     const barTxt=priv?'\u2022\u2022\u2022':sar(Math.round(barVal));
     const l1=(LANG==='ar'?'\u062a\u0631\u0627\u0643\u0645\u064a':'Cum')+': '+cumTxt;
@@ -1721,6 +1723,10 @@ function sidenavHTML(){
       ${addLabel}
     </button>`;
 }
+function bindHeader(){
+  document.querySelectorAll('.top [data-act]').forEach(el=>el.onclick=()=>handleAct(el.dataset.act,el));
+  document.querySelectorAll('.top [data-go]').forEach(el=>el.onclick=()=>{ view=el.dataset.go; render(); });
+}
 function bindSidenav(){
   const sn=document.getElementById('sidenav');
   if(!sn) return;
@@ -1731,6 +1737,8 @@ function bindSidenav(){
 function render(){
   if(!isLoggedIn()){ loginScreen(); return; }
   document.body.className=LANG==='ar'?'ar':'';
+  // Privacy state lives on body class — always sync it, never depends on re-render timing
+  if(S.settings.privacy) document.body.classList.add('privacy-on');
   document.documentElement.lang=LANG; document.documentElement.dir=LANG==='ar'?'rtl':'ltr';
   app.innerHTML = header() + periodBar() + viewHTML() + nav() + fab();
   // Desktop sidenav
@@ -1869,7 +1877,6 @@ function gaugeHTML(st){
 }
 
 function statusCardHTML(st){
-  const pv=S.settings.privacy?'bal-hidden':'';
   // Top slot is now fixed: "left to spend" = Budget - Spent, colored red if
   // overspent. Status-specific framing (over budget / trending over) moves
   // into a 4th table row below, in the same row style as Budget/Spent/Remaining.
@@ -1889,11 +1896,11 @@ function statusCardHTML(st){
   const remPct=st.tb>0?Math.round((st.rem/st.tb)*1000)/10:null;
   return `<div class="scard">
     <div class="stitle" style="color:${tcol}">${title}</div>
-    <div class="sbig ${pv}">${big}</div>
+    <div class="sbig bal">${big}</div>
     <div class="ssub">${sub}</div>
     <div class="stable">
-      <div><span>${t('budget')}</span><b class="${pv}">${sar(st.tb)}</b></div>
-      <div><span>${t('spent')}</span><b class="${pv}">${sar(st.sp)}</b></div>
+      <div><span>${t('budget')}</span><b class="bal">${sar(st.tb)}</b></div>
+      <div><span>${t('spent')}</span><b class="bal">${sar(st.sp)}</b></div>
       <div><span>${t('remaining')}</span><b style="color:${st.rem<0?'var(--bad)':'var(--acc)'}">${remPct===null?'—':remPct+'%'}</b></div>
       ${statusRow}
     </div>
@@ -1903,7 +1910,6 @@ function statusCardHTML(st){
 function spendChartHTML(st){
   const days=st.daysInPeriod;
   const mode=chartMode||(days>45?'weekly':'daily');
-  const pv=S.settings.privacy?'bal-hidden':'';
   const W=320,H=200,L=30,Rm=30,T=12,B=22,pW=W-L-Rm,pH=H-T-B;
   const proj=st.isCur?st.projection:st.sp;
   // ---- Left axis: cumulative line + budget line + projection ----
@@ -1957,8 +1963,8 @@ function spendChartHTML(st){
     <div class="cbody">
       <div class="csvg" dir="ltr"><svg id="spendsvg" viewBox="0 0 ${W} ${H}" width="100%">${grid}${raxis}${bars}${ap?`<path d="${ap}" fill="rgba(46,230,166,.12)"/>`:''}${lp?`<path d="${lp}" fill="none" stroke="#2ee6a6" stroke-width="2"/>`:''}${bl}${pr}${xl}${hits}<g id="barlabel"></g></svg></div>
       <div class="crail">
-        <div><div class="rk">${st.isCur?(LANG==='ar'?'المتوقع نهاية الشهر':'Projected Month End'):(LANG==='ar'?'الإجمالي':'Total Spent')}</div><div class="rv ${pv}" style="color:var(--acc)">${sar(Math.round(proj))}</div></div>
-        <div><div class="rk">${t('budget')}</div><div class="rv ${pv}">${sar(st.tb)}</div></div>
+        <div><div class="rk">${st.isCur?(LANG==='ar'?'المتوقع نهاية الشهر':'Projected Month End'):(LANG==='ar'?'الإجمالي':'Total Spent')}</div><div class="rv bal" style="color:var(--acc)">${sar(Math.round(proj))}</div></div>
+        <div><div class="rk">${t('budget')}</div><div class="rv bal">${sar(st.tb)}</div></div>
         <div><div class="rk">${st.isCur?(LANG==='ar'?'المخاطرة':'Risk'):(LANG==='ar'?'المستخدم':'Used')}</div><div class="rv" style="color:${riskCol}">${riskTxt}</div><div class="rk" style="margin-top:1px">${LANG==='ar'?'مقابل الميزانية':'vs budget'}</div></div>
       </div>
     </div>
@@ -1985,7 +1991,6 @@ function topCatsHTML(st){
   const tracked=trackedLeafIds();
   const rows=topCatsTracked().map(c=>({c,b:catBudgetTracked(c),s:catSpentTracked(c,st.list)})).filter(r=>r.s>0||r.b>0).sort((a,b)=>b.s-a.s).slice(0,3);
   if(!rows.length)return '';
-  const pv=S.settings.privacy?'bal-hidden':'';
   const tint=col=>col==='var(--bad)'?'rgba(255,107,129,.15)':col==='var(--warn)'?'rgba(255,180,84,.15)':'rgba(46,230,166,.15)';
   const body=rows.map(r=>{
     const u=r.b>0?(r.s/r.b)*100:(r.s>0?100:0);
@@ -1996,7 +2001,7 @@ function topCatsHTML(st){
     return `<div class="trow" data-drill="${r.c.id}">
       <div class="emoji" style="width:40px;height:40px;font-size:18px;background:${tint(col)}">${r.c.icon}</div>
       <div class="tnm"><div class="cn">${cname(r.c)}</div><div class="cm">${n} ${LANG==='ar'?'معاملة':'transactions'}</div></div>
-      <div class="tmid"><div class="tamt"><b class="${pv}">${sar(r.s)}</b> <span>/ ${fmt(r.b)}</span></div><div class="cbar"><div style="width:${Math.min(100,u)}%;background:${col}"></div></div></div>
+      <div class="tmid"><div class="tamt"><b class="bal">${sar(r.s)}</b> <span>/ ${fmt(r.b)}</span></div><div class="cbar"><div style="width:${Math.min(100,u)}%;background:${col}"></div></div></div>
       <div class="tright"><div class="tpct">${Math.round(u)}%</div><div class="chipstat" style="background:${tint(col)};color:${col}">● ${lbl}</div></div>
     </div>`;}).join('');
   return `<div class="sectit"><h2>${LANG==='ar'?'أهم الفئات':'TOP CATEGORIES'}</h2><a data-go="budget">${t('viewall')}</a></div><div class="tcard">${body}</div>`;
@@ -2098,20 +2103,18 @@ function budgetView(){
 // Compact one-line summary shown in place of the Budget Overview card when the
 // "budget donut" is hidden. Tapping it re-shows the full card.
 function budgetSummaryStrip(st){
-  const pv=S.settings.privacy?'bal-hidden':'';
   return `<div class="ovstrip" data-act="showdonut" title="${LANG==='ar'?'إظهار النظرة العامة':'Show budget overview'}">
     <span class="ovs-i">${ICON.info}</span>
-    <span class="ovs-seg"><span class="ovs-k">${t('totalBudget')}</span><b class="${pv}">${sar(st.tb)}</b></span>
+    <span class="ovs-seg"><span class="ovs-k">${t('totalBudget')}</span><b class="bal">${sar(st.tb)}</b></span>
     <span class="ovs-dot">·</span>
-    <span class="ovs-seg"><span class="ovs-k">${t('spent')}</span><b class="${pv}">${sar(st.sp)}</b></span>
+    <span class="ovs-seg"><span class="ovs-k">${t('spent')}</span><b class="bal">${sar(st.sp)}</b></span>
     <span class="ovs-dot">·</span>
-    <span class="ovs-seg"><b class="${pv}" style="color:${st.rem<0?'var(--bad)':'var(--acc)'}">${sar(st.rem)}</b> <span class="ovs-k">${t('left')}</span></span>
+    <span class="ovs-seg"><b class="bal" style="color:${st.rem<0?'var(--bad)':'var(--acc)'}">${sar(st.rem)}</b> <span class="ovs-k">${t('left')}</span></span>
     <span class="ovs-eye">${ICON.eye}</span>
   </div>`;
 }
 
 function budgetOverviewCard(st){
-  const pv=S.settings.privacy?'bal-hidden':'';
   const used=Math.round(st.usedPct);
   const col=st.tb===0?'var(--ink3)':used>100?'var(--bad)':used>=80?'var(--warn)':'var(--acc)';
   const r=44,circ=2*Math.PI*r,fill=circ*Math.min(st.tb>0?used:0,100)/100;
@@ -2125,7 +2128,7 @@ function budgetOverviewCard(st){
     <div class="ovrow">
       <div class="ovleft">
         <div class="k">${t('totalBudget')}</div>
-        <div class="big ${pv}">${sar(st.tb)}</div>
+        <div class="big bal">${sar(st.tb)}</div>
         <div class="sub">${periodLabel()}</div>
         <div class="ovmom"><span class="ovmoml">${t('vsLastMonth')}</span><b class="ovmomv" style="color:${momCol}"><span class="ovmoma">${momArrow}</span>${Math.abs(mom.pct)}%</b></div>
       </div>
@@ -2137,9 +2140,9 @@ function budgetOverviewCard(st){
         <div class="ovdnum"><b>${st.tb>0?used+'%':'—'}</b><span>${t('usedCap')}</span></div>
       </div>
       <div class="ovright">
-        <div class="ovrr"><span class="rk">${t('spent')}</span><b class="rv ${pv}">${sar(st.sp)}</b></div>
-        <div class="ovrr"><span class="rk">${t('remaining')}</span><b class="rv ${pv}" style="color:${st.rem<0?'var(--bad)':'var(--acc)'}">${sar(st.rem)}</b></div>
-        <div class="ovrr"><span class="rk">${t('forecast')}</span><b class="rv ${pv}">${sar(Math.round(st.projection))}</b></div>
+        <div class="ovrr"><span class="rk">${t('spent')}</span><b class="rv bal">${sar(st.sp)}</b></div>
+        <div class="ovrr"><span class="rk">${t('remaining')}</span><b class="rv bal" style="color:${st.rem<0?'var(--bad)':'var(--acc)'}">${sar(st.rem)}</b></div>
+        <div class="ovrr"><span class="rk">${t('forecast')}</span><b class="rv bal">${sar(Math.round(st.projection))}</b></div>
       </div>
     </div>
   </div>`;
@@ -2202,7 +2205,6 @@ function subCatRows(list){
   const tracked=trackedLeafIds();
   const leaves=S.cats.filter(isLeaf).filter(c=>tracked===null||tracked.has(c.id));
   if(!leaves.length) return emptyTrackedNote();
-  const pv=S.settings.privacy?'bal-hidden':'';
   // Sort by parent name then own name, so siblings cluster together.
   const parentName=c=>{ const p=c.parent?catById(c.parent):null; return p?cname(p):cname(c); };
   leaves.sort((a,b)=>parentName(a).localeCompare(parentName(b))||cname(a).localeCompare(cname(b)));
@@ -2214,7 +2216,7 @@ function subCatRows(list){
     return `<div class="leafrow">
       <div class="kidic">${k.icon}</div>
       <div class="kidnm"><div class="n">${cname(k)}</div><div class="s">${sub}</div></div>
-      <div class="kidmid"><div class="kidamt"><b class="${pv}">${sar(ks)}</b> <span>/ ${fmt(kb)}</span></div>
+      <div class="kidmid"><div class="kidamt"><b class="bal">${sar(ks)}</b> <span>/ ${fmt(kb)}</span></div>
         <div class="gbar"><div style="width:${Math.min(100,ku)}%;background:${barColor(ku)}"></div></div></div>
       <div class="kidpct" style="color:${barColor(ku)}">${kb>0?Math.round(ku):0}%</div>
       <div class="kidkebab" data-kebab="${k.id}">⋮</div>
@@ -2231,7 +2233,6 @@ function statusPillStyle(u){
 function barColor(u){ return u>=100?'var(--bad)':u>=80?'var(--warn)':'var(--acc)'; }
 
 function budgetGroupRow(c,list){
-  const pv=S.settings.privacy?'bal-hidden':'';
   const tracked=trackedLeafIds();
   const allKids=childrenOf(c.id);
   const kids=tracked===null?allKids:allKids.filter(k=>tracked.has(k.id));
@@ -2248,7 +2249,7 @@ function budgetGroupRow(c,list){
       <div class="kidtree"></div>
       <div class="kidic">${k.icon}</div>
       <div class="kidnm"><div class="n">${cname(k)}</div>${ksub?`<div class="s">${ksub}</div>`:''}</div>
-      <div class="kidmid"><div class="kidamt"><b class="${pv}">${sar(ks)}</b> <span>/ ${fmt(kb)}</span></div>
+      <div class="kidmid"><div class="kidamt"><b class="bal">${sar(ks)}</b> <span>/ ${fmt(kb)}</span></div>
         <div class="gbar"><div style="width:${Math.min(100,ku)}%;background:${barColor(ku)}"></div></div></div>
       <div class="kidpct" style="color:${barColor(ku)}">${Math.round(ku)}%</div>
       <div class="kidkebab" data-kebab="${k.id}">⋮</div>
@@ -2258,7 +2259,7 @@ function budgetGroupRow(c,list){
     <div class="grphead" data-group="${c.id}">
       <div class="grpic">${c.icon}</div>
       <div class="grpnm"><div class="n">${cname(c)}</div><div class="s">${sub}</div></div>
-      <div class="grpmid"><div class="grpamt"><b class="${pv}">${sar(s)}</b> <span>/ ${fmt(b)}</span></div>
+      <div class="grpmid"><div class="grpamt"><b class="bal">${sar(s)}</b> <span>/ ${fmt(b)}</span></div>
         <div class="gbar"><div style="width:${Math.min(100,u)}%;background:${barColor(u)}"></div></div></div>
       <div class="grppct">
         <span class="grppill" style="background:${pill.bg};color:${pill.col}">${b>0?Math.round(u):0}%</span>
@@ -3516,7 +3517,19 @@ function handleAct(a, el){
     if(a==='signout'){ confirmSheet(LANG==='ar'?'تسجيل الخروج؟':'Sign out?',
       LANG==='ar'?'ستحتاج لتسجيل الدخول مرة أخرى.':'You will need to sign in again.',
       ()=>signOut()); }
-    if(a==='togprivacy'){S.settings.privacy=!S.settings.privacy;save();render();}
+    if(a==='togprivacy'){
+      S.settings.privacy=!S.settings.privacy;
+      // Apply instantly via body class — no re-render, no flash
+      document.body.classList.toggle('privacy-on', S.settings.privacy);
+      save();
+      // Only update the eye icon in the header, not the whole page
+      document.querySelectorAll('[data-act="togprivacy"] svg,[data-act="togprivacy"] .hic').forEach(el=>{
+        el.style.opacity = S.settings.privacy ? '1' : '';
+      });
+      // Re-render header only to flip the eye icon active state
+      const topEl = document.querySelector('.top');
+      if(topEl){ const tmp=document.createElement('div'); tmp.innerHTML=header(); topEl.replaceWith(tmp.firstElementChild); bindHeader(); }
+    }
     if(a==='toglang'){LANG=LANG==='ar'?'en':'ar';localStorage.setItem('mizan_lang',LANG);render();}
 }
   const cm=document.getElementById('chartmode');
