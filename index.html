@@ -1738,8 +1738,8 @@ function bindSidenav(){
 function render(){
   if(!isLoggedIn()){ loginScreen(); return; }
   document.body.className=LANG==='ar'?'ar':'';
-  // Privacy state lives on body class — always sync it, never depends on re-render timing
-  if(S.settings.privacy) document.body.classList.add('privacy-on');
+  // Privacy body class is the single source of truth for blur — always sync from settings
+  document.body.classList.toggle('privacy-on', !!S.settings.privacy);
   document.documentElement.lang=LANG; document.documentElement.dir=LANG==='ar'?'rtl':'ltr';
   app.innerHTML = header() + periodBar() + viewHTML() + nav() + fab();
   // Desktop sidenav
@@ -3520,16 +3520,9 @@ function handleAct(a, el){
       ()=>signOut()); }
     if(a==='togprivacy'){
       S.settings.privacy=!S.settings.privacy;
-      // Apply instantly via body class — no re-render, no flash
       document.body.classList.toggle('privacy-on', S.settings.privacy);
       save();
-      // Only update the eye icon in the header, not the whole page
-      document.querySelectorAll('[data-act="togprivacy"] svg,[data-act="togprivacy"] .hic').forEach(el=>{
-        el.style.opacity = S.settings.privacy ? '1' : '';
-      });
-      // Re-render header only to flip the eye icon active state
-      const topEl = document.querySelector('.top');
-      if(topEl){ const tmp=document.createElement('div'); tmp.innerHTML=header(); topEl.replaceWith(tmp.firstElementChild); bindHeader(); }
+      render(); // re-render to sync eye icon — body class handles blur instantly with no flash
     }
     if(a==='toglang'){LANG=LANG==='ar'?'en':'ar';localStorage.setItem('mizan_lang',LANG);render();}
 }
