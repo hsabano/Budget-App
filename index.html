@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Awzin v2.8 | cycle-aware budgets · approval-first categorization · uncategorized-spend split -->
+<!-- Awzin v2.9 | cycle-aware budgets · uncategorized split · duplicate-SMS dedup · empty-cloud guard -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -937,16 +937,22 @@ async function loadFromCloud(){
       sbFetch('vendor_map?select=*'),
       uidAuth ? sbFetch(`app_settings?user_id=eq.${uidAuth}&select=data`) : Promise.resolve(null),
     ]);
-    if(Array.isArray(cats)){
+    // Only adopt the cloud list when it actually has rows, or when we have
+    // nothing locally to lose. An empty response (RLS scoping, a different
+    // signed-in user, a still-empty table) used to wipe every category and
+    // budget — which zeroed the budget and pushed every transaction to 'uncat'.
+    if(Array.isArray(cats) && (cats.length || !S.cats.length)){
       S.cats = cats.map(c=>({ id:c.id, name:{en:c.name_en,ar:c.name_ar}, icon:c.icon,
         budget:Number(c.budget)||0, parent:c.parent_id||null }));
+    } else if(Array.isArray(cats) && !cats.length){
+      console.warn('[Awzin] categories came back empty — keeping local categories');
     }
-    if(Array.isArray(inc)){
+    if(Array.isArray(inc) && (inc.length || !S.income.length)){
       // keep income coming from SMS (sb_tx_id) merged with manual
       S.income = inc.map(i=>({ id:i.id, amount:Number(i.amount), source:i.source,
         date:i.income_date, kind:i.kind }));
     }
-    if(Array.isArray(vm)){
+    if(Array.isArray(vm) && (vm.length || !Object.keys(S.vendorMap||{}).length)){
       S.vendorMap = {}; vm.forEach(r=>{ if(r.vendor) S.vendorMap[r.vendor]=r.category_id; });
     }
     // Settings (e.g. trackFilter) from another device. Only apply if this
@@ -1053,6 +1059,43 @@ const cname = c => c.name[LANG] || c.name.en;
 const childrenOf = id => S.cats.filter(c=>c.parent===id);
 const topCats = () => S.cats.filter(c=>!c.parent);
 function catById(id){return S.cats.find(c=>c.id===id);}
+
+/* ---- Duplicate detection ----------------------------------------------
+   The iOS Shortcut runs one automation per trigger keyword, and a typical
+   Saudi bank SMS contains several of them (مبلغ AND ريال). Every matching
+   automation POSTs the same message, producing multiple sms_inbox rows and
+   therefore multiple `transactions` rows with DIFFERENT ids. Dedup used to
+   key on sb_tx_id alone, so those all survived and spend was double-counted.
+   We now also compare the economic content of the transaction.            */
+const _norm = v => String(v==null?'':v).trim().toLowerCase().replace(/\s+/g,' ');
+function txSig(o){
+  // Accept either a cloud row (tx_date/tx_time) or a local tx (date/time).
+  const amt  = Math.round((Number(o.amount)||0)*100);
+  const date = _norm(o.tx_date||o.date);
+  const time = _norm(o.tx_time||o.time).slice(0,5);   // HH:MM — minute precision
+  const who  = _norm(o.vendor||o.label||o.source||o.counterparty_to||o.to);
+  return [amt,date,time,who].join('|');
+}
+// Removes duplicates already sitting in local state. Two entries are the same
+// spend when amount, date, minute AND counterparty all match — a genuine repeat
+// purchase at the identical minute for the identical amount is vanishingly rare.
+// Entries with no time recorded are left alone (too weak a signal to judge).
+function dedupeLocal(){
+  let removed=0;
+  ['tx','income'].forEach(key=>{
+    const seen=new Set(), keep=[];
+    (S[key]||[]).forEach(x=>{
+      const t=_norm(x.time);
+      if(!t){ keep.push(x); return; }        // no timestamp -> never auto-remove
+      const sig=txSig(x);
+      if(seen.has(sig)){ removed++; return; }
+      seen.add(sig); keep.push(x);
+    });
+    S[key]=keep;
+  });
+  if(removed){ console.warn('[Awzin] removed '+removed+' duplicate transaction(s)'); saveLocal(); }
+  return removed;
+}
 // A "leaf" is any category that can directly hold transactions/budget:
 // either a top-level category with no children, or any child category.
 const isLeaf = c => c.parent || childrenOf(c.id).length===0;
@@ -1574,9 +1617,17 @@ async function pollSupabase(){
     // 2) Pull clean AI-parsed transactions we haven't imported yet
     const rows = await sbFetch(`transactions?order=id.asc&select=*`);
     if(!rows||!rows.length){ syncing=false; return; }
-    let added=0;
+    let added=0, skippedDupes=0;
+    // Content signatures of everything we already hold, so a re-POSTed SMS
+    // arriving under a new row id can't be counted a second time.
+    const seenSigs=new Set();
+    S.tx.forEach(x=>{ if(_norm(x.time)) seenSigs.add(txSig(x)); });
+    S.income.forEach(x=>{ if(_norm(x.time)) seenSigs.add(txSig(x)); });
     for(const row of rows){
       if(S.tx.find(x=>x.sb_tx_id===row.id)||S.income.find(x=>x.sb_tx_id===row.id)) continue;
+      const sig=txSig(row);
+      if(_norm(row.tx_time) && seenSigs.has(sig)){ skippedDupes++; continue; }
+      if(_norm(row.tx_time)) seenSigs.add(sig);
       // Safety net: transfers between the user's own accounts never count
       if(row.raw && /بين حساباتك/.test(row.raw)) continue;
       if(row.flow==='in'){
@@ -1604,6 +1655,7 @@ async function pollSupabase(){
       }
       added++;
     }
+    if(skippedDupes>0) console.warn('[Awzin] skipped '+skippedDupes+' duplicate SMS row(s) this sync');
     if(added>0){ save(); render(); showSyncToast(added); }
   }catch(e){ console.warn('Supabase poll error:',e); }
   syncing=false;
@@ -1690,10 +1742,16 @@ function loginScreen(){
 }
 async function bootAfterLogin(){
   if(SB.enabled&&SB.url&&SB.anonKey){ await loadFromCloud(); }
+  // Clear out duplicates created before content-level dedup existed (one SMS
+  // POSTed by several Shortcut automations became several transactions).
+  const deduped=dedupeLocal();
   const recovered=await recoverGeneralAssignments();
   const moved=reconcileLeafAssignments();
   render(); startPolling();
-  if(recovered) toast(recoverMsg(recovered));
+  if(deduped) toast(LANG==='ar'
+      ? `تمت إزالة ${deduped} عملية مكرّرة`
+      : `Removed ${deduped} duplicate transaction${deduped===1?'':'s'}`);
+  else if(recovered) toast(recoverMsg(recovered));
   else if(moved) toast(leafReconcileMsg(moved));
 }
 
