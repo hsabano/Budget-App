@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Awzin v2.7 | cycle-aware budgets · approval-first categorization · privacy fix -->
+<!-- Awzin v2.8 | cycle-aware budgets · approval-first categorization · uncategorized-spend split -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -666,7 +666,7 @@ svg .barhit.active{}
 /* ============ i18n ============ */
 const T = {
   en:{appsub:"Personal Budget",dash:"Home",budget:"Budget",add:"Add",reports:"Insights",
-    settings:"Settings",totalBudget:"Total Budget",spent:"Spent",remaining:"Remaining",
+    settings:"Settings",totalBudget:"Total Budget",spent:"Spent",remaining:"Remaining",uncatSpend:"Uncategorized",notInBudget:"not in budget",spentBudgeted:"Spent (budgeted)",
     overspend:"Overspend",compliance:"On track",categories:"Categories",recent:"Recent",
     viewall:"View all",uncategorized:"Uncategorized",ofbudget:"of budget",
     addExpense:"Add Expense",importSms:"Import from SMS",amount:"Amount",vendor:"Vendor",
@@ -700,7 +700,7 @@ const T = {
     downloadTemplate:"Download Template",allCaughtUp:"All caught up — nothing to categorize.",
     catUpdated:"Category updated",editCat2:"Edit",deleteCat2:"Delete",moveTx:"View transactions",usedCap:"Used"},
   ar:{appsub:"الميزانية الشخصية",dash:"الرئيسية",budget:"الميزانية",add:"إضافة",reports:"الرؤى",
-    settings:"الإعدادات",totalBudget:"إجمالي الميزانية",spent:"المصروف",remaining:"المتبقي",
+    settings:"الإعدادات",totalBudget:"إجمالي الميزانية",spent:"المصروف",remaining:"المتبقي",uncatSpend:"غير مصنّف",notInBudget:"خارج الميزانية",spentBudgeted:"المصروف (ضمن الميزانية)",
     overspend:"تجاوز",compliance:"ضمن الحد",categories:"الفئات",recent:"الأحدث",
     viewall:"عرض الكل",uncategorized:"غير مصنّف",ofbudget:"من الميزانية",
     addExpense:"إضافة مصروف",importSms:"استيراد من رسالة",amount:"المبلغ",vendor:"المتجر",
@@ -1302,9 +1302,10 @@ function totalBudgetTracked(){
   S.cats.forEach(c=>{ if(isLeaf(c)&&tracked.has(c.id)) sum+=(c.budget||0); });
   return sum;
 }
-// Filters a transaction list down to tracked leaf categories. 'uncat' /
-// uncategorized transactions are excluded once a filter is active — an
-// untracked spend shouldn't silently inflate a focused view.
+// Filters a transaction list down to tracked leaf categories, PLUS all
+// uncategorized transactions (they are real money out). Note that uncategorized
+// spend has no matching budget, so dashStats() reports it as a separate figure
+// rather than letting it silently push the budget into the red.
 function filterTrackedTx(list){
   const tracked=trackedLeafIds();
   // Uncategorized transactions always count toward spend — they represent real
@@ -1821,6 +1822,15 @@ function dashStats(){
   const list=filterTrackedTx(txInPeriod());
   const tb=totalBudgetTracked();
   const sp=list.reduce((a,x)=>a+(x.amount||0),0);
+  // Split total spend into money that belongs to a budgeted category vs money
+  // that is still uncategorized. Only the budgeted half is comparable to `tb`,
+  // since uncategorized transactions contribute nothing to the budget total.
+  // Comparing the combined figure against tb is apples-to-oranges and was
+  // producing false "over budget" alerts.
+  const uncatList=list.filter(x=>!x.cat||x.cat==='uncat');
+  const spUncat=uncatList.reduce((a,x)=>a+(x.amount||0),0);
+  const spBudgeted=sp-spUncat;
+  const uncatCount=uncatList.length;
   const [ps,pe]=periodRange();
   const msDay=86400000;
   const daysInPeriod=Math.max(1,Math.floor((pe-ps)/msDay)+1);
@@ -1830,13 +1840,18 @@ function dashStats(){
   const dayOf=isCur?Math.min(Math.max(1,Math.floor((now-ps)/msDay)+1),daysInPeriod):daysInPeriod;
   const dayFrac=dayOf/daysInPeriod;
   const expected=tb*dayFrac;
-  const pace=expected>0?sp/expected:0;
-  const projection=(isCur&&dayOf>0)?(sp/dayOf)*daysInPeriod:sp;
+  // Pace and projection are compared against the budget, so they use the
+  // budgeted half of spend for the same apples-to-apples reason as usedPct.
+  const pace=expected>0?spBudgeted/expected:0;
+  const projection=(isCur&&dayOf>0)?(spBudgeted/dayOf)*daysInPeriod:spBudgeted;
   const daily=new Array(daysInPeriod).fill(0);
   list.forEach(x=>{const d=new Date(x.date);const idx=Math.floor((d-ps)/msDay);if(idx>=0&&idx<daysInPeriod)daily[idx]+=x.amount;});
   const cum=[];let c=0;for(let i=0;i<daysInPeriod;i++){c+=daily[i];cum.push(c);}
-  const usedPct=tb>0?(sp/tb)*100:(sp>0?999:0);
-  return {list,tb,sp,rem:tb-sp,daysInPeriod,dayOf,dayFrac,pace,projection,projOver:projection-tb,daily,cum,usedPct,isCur};
+  // Budget health (gauge, "over budget" status, remaining) is judged on
+  // budgeted spend only — the like-for-like comparison against tb.
+  const usedPct=tb>0?(spBudgeted/tb)*100:(spBudgeted>0?999:0);
+  return {list,tb,sp,spBudgeted,spUncat,uncatCount,rem:tb-spBudgeted,
+    daysInPeriod,dayOf,dayFrac,pace,projection,projOver:projection-tb,daily,cum,usedPct,isCur};
 }
 // Choose an axis maximum for `divs` gridline intervals (default 4) that sits
 // just above the data, with each gridline a round number. The top label ends up
@@ -1887,9 +1902,9 @@ function statusCardHTML(st){
   // Extra status row: only when there's something beyond the plain remaining
   // figure to flag (overspent, or trending toward overspending this month).
   let statusRow='';
-  if(st.tb>0&&st.sp>st.tb){
+  if(st.tb>0&&st.spBudgeted>st.tb){
     const lbl=LANG==='ar'?'تجاوزت ميزانيتك':"You're over budget";
-    statusRow=`<div><span>${lbl}</span><b style="color:var(--bad)">${sar(st.sp-st.tb)}</b></div>`;
+    statusRow=`<div><span>${lbl}</span><b style="color:var(--bad)">${sar(st.spBudgeted-st.tb)}</b></div>`;
   }else if(st.tb>0&&st.isCur&&st.pace>=1.15){
     const lbl=LANG==='ar'?'تتجه لتجاوز الميزانية':'Trending over budget';
     statusRow=`<div><span>${lbl}</span><b style="color:var(--warn)">${sar(Math.max(0,Math.round(st.projOver)))}</b></div>`;
@@ -1901,7 +1916,8 @@ function statusCardHTML(st){
     <div class="ssub">${sub}</div>
     <div class="stable">
       <div><span>${t('budget')}</span><b class="bal">${sar(st.tb)}</b></div>
-      <div><span>${t('spent')}</span><b class="bal">${sar(st.sp)}</b></div>
+      <div><span>${st.spUncat>0?t('spentBudgeted'):t('spent')}</span><b class="bal">${sar(st.spBudgeted)}</b></div>
+      ${st.spUncat>0?`<div><span>${t('uncatSpend')} <em style="color:var(--ink3);font-style:normal">(${st.uncatCount})</em></span><b class="bal" style="color:var(--warn)">${sar(st.spUncat)}</b></div>`:''}
       <div><span>${t('remaining')}</span><b style="color:${st.rem<0?'var(--bad)':'var(--acc)'}">${remPct===null?'—':remPct+'%'}</b></div>
       ${statusRow}
     </div>
@@ -1973,7 +1989,7 @@ function spendChartHTML(st){
 }
 
 function alertCardHTML(st){
-  if(!(st.tb>0&&(st.sp>st.tb||(st.isCur&&st.pace>=1.15))))return '';
+  if(!(st.tb>0&&(st.spBudgeted>st.tb||(st.isCur&&st.pace>=1.15))))return '';
   const contrib=topCatsTracked().map(c=>{const b=catBudgetTracked(c),s=catSpentTracked(c,st.list);
     return{c,s,r:(b>0&&st.dayFrac>0)?s/(b*st.dayFrac)-1:(s>0&&b===0?1:-1)};})
     .filter(o=>o.r>0.05&&o.s>0).sort((a,b)=>b.r-a.r).slice(0,3);
@@ -2075,10 +2091,17 @@ function budgetStats(){
   const dayOf=isCur?Math.min(Math.max(1,Math.floor((now-ps)/msDay)+1),daysInPeriod):daysInPeriod;
   const dayFrac=dayOf/daysInPeriod;
   const expected=tb*dayFrac;
-  const pace=expected>0?sp/expected:0;
-  const projection=(isCur&&dayOf>0)?(sp/dayOf)*daysInPeriod:sp;
-  const usedPct=tb>0?(sp/tb)*100:(sp>0?999:0);
-  return {list,tb,sp,rem:tb-sp,daysInPeriod,dayOf,dayFrac,pace,projection,projOver:projection-tb,usedPct,isCur};
+  // Same split as dashStats: uncategorized spend has no budget behind it, so
+  // only the budgeted half is comparable to tb.
+  const uncatList=list.filter(x=>!x.cat||x.cat==='uncat');
+  const spUncat=uncatList.reduce((a,x)=>a+(x.amount||0),0);
+  const spBudgeted=sp-spUncat;
+  const uncatCount=uncatList.length;
+  const pace=expected>0?spBudgeted/expected:0;
+  const projection=(isCur&&dayOf>0)?(spBudgeted/dayOf)*daysInPeriod:spBudgeted;
+  const usedPct=tb>0?(spBudgeted/tb)*100:(spBudgeted>0?999:0);
+  return {list,tb,sp,spBudgeted,spUncat,uncatCount,rem:tb-spBudgeted,
+    daysInPeriod,dayOf,dayFrac,pace,projection,projOver:projection-tb,usedPct,isCur};
 }
 function budgetView(){
   const st=budgetStats();
@@ -2108,7 +2131,7 @@ function budgetSummaryStrip(st){
     <span class="ovs-i">${ICON.info}</span>
     <span class="ovs-seg"><span class="ovs-k">${t('totalBudget')}</span><b class="bal">${sar(st.tb)}</b></span>
     <span class="ovs-dot">·</span>
-    <span class="ovs-seg"><span class="ovs-k">${t('spent')}</span><b class="bal">${sar(st.sp)}</b></span>
+    <span class="ovs-seg"><span class="ovs-k">${st.spUncat>0?t('spentBudgeted'):t('spent')}</span><b class="bal">${sar(st.spBudgeted)}</b></span>${st.spUncat>0?`<span class="ovs-seg"><span class="ovs-k">${t('uncatSpend')}</span><b class="bal" style="color:var(--warn)">${sar(st.spUncat)}</b></span>`:''}
     <span class="ovs-dot">·</span>
     <span class="ovs-seg"><b class="bal" style="color:${st.rem<0?'var(--bad)':'var(--acc)'}">${sar(st.rem)}</b> <span class="ovs-k">${t('left')}</span></span>
     <span class="ovs-eye">${ICON.eye}</span>
@@ -2141,7 +2164,8 @@ function budgetOverviewCard(st){
         <div class="ovdnum"><b>${st.tb>0?used+'%':'—'}</b><span>${t('usedCap')}</span></div>
       </div>
       <div class="ovright">
-        <div class="ovrr"><span class="rk">${t('spent')}</span><b class="rv bal">${sar(st.sp)}</b></div>
+        <div class="ovrr"><span class="rk">${st.spUncat>0?t('spentBudgeted'):t('spent')}</span><b class="rv bal">${sar(st.spBudgeted)}</b></div>
+        ${st.spUncat>0?`<div class="ovrr"><span class="rk">${t('uncatSpend')}</span><b class="rv bal" style="color:var(--warn)">${sar(st.spUncat)}</b></div>`:''}
         <div class="ovrr"><span class="rk">${t('remaining')}</span><b class="rv bal" style="color:${st.rem<0?'var(--bad)':'var(--acc)'}">${sar(st.rem)}</b></div>
         <div class="ovrr"><span class="rk">${t('forecast')}</span><b class="rv bal">${sar(Math.round(st.projection))}</b></div>
       </div>
@@ -2158,7 +2182,7 @@ function alertChipIcon(c){
   return c.icon?`<span class="acce">${c.icon}</span>`:`<span class="acci">${ICON.spark}</span>`;
 }
 function alertCardHTML2(st){
-  if(!(st.tb>0&&(st.sp>st.tb||(st.isCur&&st.pace>=1.15))))return '';
+  if(!(st.tb>0&&(st.spBudgeted>st.tb||(st.isCur&&st.pace>=1.15))))return '';
   // Surface the most over-pace LEAF categories (e.g. Phone, Personal Care,
   // Restaurants) rather than rolled-up parents, so contributors are specific.
   const leaves=S.cats.filter(isLeaf);
@@ -3223,7 +3247,7 @@ function incomeSheet(){
 
 function alertItems(){
   const st=dashStats();const items=[];
-  if(st.tb>0&&st.sp>st.tb)items.push({ic:'🔴',t:LANG==='ar'?'تجاوزت الميزانية':'Over budget',d:(LANG==='ar'?'تجاوزت بمقدار ':'Over by ')+sar(st.sp-st.tb)});
+  if(st.tb>0&&st.spBudgeted>st.tb)items.push({ic:'🔴',t:LANG==='ar'?'تجاوزت الميزانية':'Over budget',d:(LANG==='ar'?'تجاوزت بمقدار ':'Over by ')+sar(st.spBudgeted-st.tb)});
   else if(st.tb>0&&st.isCur&&st.pace>=1.15)items.push({ic:'⚠️',t:LANG==='ar'?'وتيرة صرف مرتفعة':'Spending fast',d:st.pace.toFixed(1)+'× '+(LANG==='ar'?'أسرع من المخطط':'faster than planned')});
   topCats().forEach(c=>{const b=catBudget(c),s=catSpent(c.id,st.list);if(b>0){const u=s/b*100;
     if(u>=100)items.push({ic:'🚨',t:cname(c),d:LANG==='ar'?'بلغت حد الميزانية':'Budget limit reached'});
