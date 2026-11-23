@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Awzin v3.3 | tracking start date · shared chart axis · uncategorized in budget health · trackFilter fix · non-spend exclusion -->
+<!-- Awzin v3.4 · live duplicate merge · tracking start date · shared chart axis · uncategorized in budget health -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -1711,7 +1711,16 @@ async function pollSupabase(){
       }
       added++;
     }
-    if(added>0){ save(); render(); showSyncToast(added); }
+    // One SMS can match several iOS automations, so the same message arrives as
+    // two sms_inbox rows with different ids and becomes two transactions. The
+    // backend now blocks that at the source, but anything already ingested, or
+    // arriving from an older client, is merged here. Previously this ran only at
+    // startup, so a duplicate stayed on screen until the app was reloaded.
+    if(added>0){
+      const merged=dedupeLocal();
+      save(); render();
+      showSyncToast(Math.max(0, added-merged));
+    }
   }catch(e){ console.warn('Supabase poll error:',e); }
   syncing=false;
 }
