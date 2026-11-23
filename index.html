@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- Awzin v3.2 | shared chart axis · x-axis label fix · uncategorized in budget health · trackFilter fix · non-spend exclusion -->
+<!-- Awzin v3.3 | tracking start date · shared chart axis · uncategorized in budget health · trackFilter fix · non-spend exclusion -->
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -757,7 +757,7 @@ const DEFAULT = {
   // trackFilter: null = track everything (default). Otherwise an array of
   // category ids the user wants to focus on — can mix top-level (parent)
   // ids and individual leaf/child ids. See trackedLeafIds() for expansion.
-  settings:{privacy:false,hijri:false,trackFilter:null,hideDonut:false,groupBy:'parent',cycleDay:1},
+  settings:{privacy:false,hijri:false,trackFilter:null,hideDonut:false,groupBy:'parent',cycleDay:1,startDate:null},
   // Tracks ids the user actually changed locally, by bucket. Push only sends
   // these — never a full snapshot — so a stale session with an empty dirty
   // set can push without overwriting anything another session changed.
@@ -772,6 +772,11 @@ if(S.settings && S.settings.trackFilter===undefined) S.settings.trackFilter=null
 if(S.settings && S.settings.hideDonut===undefined) S.settings.hideDonut=false; // Budget Overview ("budget donut") visibility
 if(S.settings && S.settings.groupBy===undefined) S.settings.groupBy='parent'; // Budget Groups grouping: 'parent' | 'sub'
 if(S.settings && S.settings.cycleDay===undefined) S.settings.cycleDay=1; // Budget cycle start day (1–28)
+// Tracking start date ('YYYY-MM-DD'). Anything dated before it is hidden from
+// the app entirely — lists, badges, charts, budgets. The rows stay untouched in
+// Supabase, and clearing this re-imports them on the next poll, so it is a view
+// filter rather than a delete.
+if(S.settings && S.settings.startDate===undefined) S.settings.startDate=null;
 // Data integrity: a parent category that HAS leaf children must never carry its
 // own budget amount — its total is the sum of its children. Childless parents
 // (true leaves) keep their budget. Runs once on load and is also enforced in the
@@ -952,8 +957,11 @@ async function loadFromCloud(){
     }
     if(Array.isArray(inc) && (inc.length || !S.income.length)){
       // keep income coming from SMS (sb_tx_id) merged with manual
+      // This is a full replace from the cloud, so it has to honour the tracking
+      // start date too — otherwise pruned income reappears on the next load.
       S.income = inc.map(i=>({ id:i.id, amount:Number(i.amount), source:i.source,
-        date:i.income_date, kind:i.kind }));
+        date:i.income_date, kind:i.kind }))
+        .filter(i=>!beforeStart(i.date));
     }
     if(Array.isArray(vm) && (vm.length || !Object.keys(S.vendorMap||{}).length)){
       S.vendorMap = {}; vm.forEach(r=>{ if(r.vendor) S.vendorMap[r.vendor]=r.category_id; });
@@ -1452,6 +1460,27 @@ function periodRange(){
   if(period==='custom'&&customRange){return[new Date(customRange[0]),new Date(customRange[1]+'T23:59:59')];}
   return cycleRange(0);
 }
+// True when a date string falls before the configured tracking start date.
+// Dates are ISO 'YYYY-MM-DD', so a plain string compare is correct and avoids
+// timezone drift. A missing date is never hidden — better visible than silently gone.
+function beforeStart(d){
+  const sd=S.settings && S.settings.startDate;
+  if(!sd||!d) return false;
+  return String(d).slice(0,10) < sd;
+}
+// Drops anything dated before the start date out of local state. Safe to run
+// repeatedly. The Supabase rows are left alone; clearing startDate brings them
+// back, because the sync loop re-adds any cloud row missing locally.
+function pruneBeforeStart(){
+  const sd=S.settings && S.settings.startDate;
+  if(!sd) return 0;
+  const n0=(S.tx||[]).length + (S.income||[]).length;
+  S.tx=(S.tx||[]).filter(x=>!beforeStart(x.date));
+  S.income=(S.income||[]).filter(x=>!beforeStart(x.date));
+  const removed=n0-((S.tx||[]).length+(S.income||[]).length);
+  if(removed) saveLocal();
+  return removed;
+}
 function txInPeriod(){
   const[s,e]=periodRange();
   return S.tx.filter(x=>{const d=new Date(x.date);return d>=s&&d<=e;});
@@ -1653,6 +1682,8 @@ async function pollSupabase(){
     let added=0;
     for(const row of rows){
       if(S.tx.find(x=>x.sb_tx_id===row.id)||S.income.find(x=>x.sb_tx_id===row.id)) continue;
+      // Older than the tracking start date — stays in Supabase, never enters the app.
+      if(beforeStart(row.tx_date)) continue;
       // Safety net: transfers between the user's own accounts never count
       if(row.raw && /بين حساباتك/.test(row.raw)) continue;
       if(row.flow==='in'){
@@ -1776,6 +1807,7 @@ async function bootAfterLogin(){
       if(catsCameBackEmpty) console.warn('[Awzin] categories still empty after refresh — check sign-in');
     }
   }
+  pruneBeforeStart();
   const deduped=dedupeLocal();
   const recovered=await recoverGeneralAssignments();
   const moved=reconcileLeafAssignments();
@@ -2658,6 +2690,28 @@ function settingsView(){
       </div>
       ${(S.settings.cycleDay||1)!==1?`<div style="margin-top:12px;padding:10px 12px;background:var(--card2);border-radius:10px;font-size:12px;color:var(--ink2)">
         💡 ${LANG==='ar'?`دورتك الحالية: ${periodLabel()}`:`Current cycle: ${periodLabel()}`}
+      </div>`:''}
+    </div>
+
+    <!-- TRACKING START -->
+    <div class="sectit"><h2>🧹 ${LANG==='ar'?'بداية التتبّع':'Tracking Start'}</h2></div>
+    <div class="sbcard" style="padding:16px 18px">
+      <div style="font-size:14px;font-weight:700;color:var(--ink)">${LANG==='ar'?'إخفاء العمليات الأقدم من':'Hide transactions before'}</div>
+      <div style="font-size:12px;color:var(--ink3);margin-top:3px;line-height:1.5">
+        ${LANG==='ar'
+          ?'تبقى العمليات محفوظة في قاعدة البيانات — هذا إخفاء من التطبيق فقط، ويمكن التراجع عنه في أي وقت.'
+          :'Transactions stay safe in the database. This only hides them from the app, and it can be undone at any time.'}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <input id="startdate-val" type="date" value="${S.settings.startDate||''}"
+          style="flex:1 1 150px;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-family:inherit;font-size:14px">
+        <button id="startdate-apply" style="padding:10px 16px;border-radius:10px;border:none;background:var(--acc);color:#07120d;font-weight:700;font-size:13px;cursor:pointer">${LANG==='ar'?'تطبيق':'Apply'}</button>
+        ${S.settings.startDate?`<button id="startdate-clear" style="padding:10px 16px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink2);font-weight:600;font-size:13px;cursor:pointer">${LANG==='ar'?'إظهار الكل':'Show all'}</button>`:''}
+      </div>
+      ${S.settings.startDate?`<div style="margin-top:12px;padding:10px 12px;background:var(--card2);border-radius:10px;font-size:12px;color:var(--warn)">
+        ⚠️ ${LANG==='ar'
+          ?`العمليات قبل ${S.settings.startDate} مخفيّة — التقارير والسجل السابق مخفيّة أيضاً.`
+          :`Transactions before ${S.settings.startDate} are hidden — earlier history and Insights are hidden too.`}
       </div>`:''}
     </div>
 
@@ -3686,6 +3740,32 @@ function handleAct(a, el){
     };
     _cycleDec.onclick=()=>updateCycle(-1);
     _cycleInc.onclick=()=>updateCycle(+1);
+  }
+  // Tracking start date
+  const _sdVal=document.getElementById('startdate-val');
+  const _sdApply=document.getElementById('startdate-apply');
+  const _sdClear=document.getElementById('startdate-clear');
+  if(_sdApply&&_sdVal){
+    _sdApply.onclick=()=>{
+      const v=(_sdVal.value||'').trim();
+      if(!v){ toast(LANG==='ar'?'اختر تاريخاً أولاً':'Pick a date first'); return; }
+      S.settings.startDate=v;
+      markDirty('settings','main');
+      const removed=pruneBeforeStart();
+      save(); render();
+      toast(LANG==='ar'?`تم إخفاء ${removed} عملية`:`Hid ${removed} transaction${removed===1?'':'s'}`);
+    };
+  }
+  if(_sdClear){
+    _sdClear.onclick=()=>{
+      S.settings.startDate=null;
+      markDirty('settings','main');
+      save(); render();
+      // The sync loop re-adds every cloud row that is missing locally, so the
+      // hidden history comes back on the next poll rather than being lost.
+      toast(LANG==='ar'?'جارٍ استعادة السجل…':'Restoring history\u2026');
+      if(typeof pollSupabase==='function') pollSupabase();
+    };
   }
   if(sbSave)sbSave.onclick=async()=>{
     const url=(document.getElementById('sb_url').value||'').trim().replace(/\/$/,'');
